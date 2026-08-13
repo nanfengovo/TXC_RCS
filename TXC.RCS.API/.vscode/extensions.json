@@ -1,0 +1,15 @@
+{
+  "recommendations": [
+    "nromanov.dotrush",
+    "chrisgroks.csharpextension",
+    "ms-dotnettools.vscode-dotnet-runtime"
+  ],
+  "unwantedRecommendations": [
+    "anysphere.csharp",
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.csdevkit",
+    "muhammad-sammy.csharp",
+    "dotnetdev-kr-custom.csharp",
+    "chrisatcursor.csharpextension"
+  ]
+}

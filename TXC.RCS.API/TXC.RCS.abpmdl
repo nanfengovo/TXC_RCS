@@ -1,0 +1,114 @@
+{
+  "template": "app",
+  "imports": {
+    "Volo.Abp.LeptonXLiteTheme": {
+      "version": "5.5.0",
+      "isInstalled": true,
+      "creationTime": "08/07/2026 05:11:12 +00:00"
+    },
+    "Volo.Abp.Account": {
+      "version": "10.5.0",
+      "isInstalled": true,
+      "creationTime": "08/07/2026 05:11:12 +00:00"
+    },
+    "Volo.Abp.OpenIddict": {
+      "version": "10.5.0",
+      "isInstalled": true,
+      "creationTime": "08/07/2026 05:11:12 +00:00"
+    },
+    "Volo.Abp.Identity": {
+      "version": "10.5.0",
+      "isInstalled": true,
+      "creationTime": "08/07/2026 05:11:12 +00:00"
+    },
+    "Volo.Abp.TenantManagement": {
+      "version": "10.5.0",
+      "isInstalled": true,
+      "creationTime": "08/07/2026 05:11:12 +00:00"
+    },
+    "Volo.Abp.SettingManagement": {
+      "version": "10.5.0",
+      "isInstalled": true,
+      "creationTime": "08/07/2026 05:11:12 +00:00"
+    },
+    "Volo.Abp.PermissionManagement": {
+      "version": "10.5.0",
+      "isInstalled": true,
+      "creationTime": "08/07/2026 05:11:12 +00:00"
+    },
+    "Volo.Abp.FeatureManagement": {
+      "version": "10.5.0",
+      "isInstalled": true,
+      "creationTime": "08/07/2026 05:11:12 +00:00"
+    },
+    "Volo.Abp.BlobStoring.Database": {
+      "version": "10.5.0",
+      "isInstalled": true,
+      "creationTime": "08/07/2026 05:11:12 +00:00"
+    }
+  },
+  "folders": {
+    "items": {
+      "src": {},
+      "test": {}
+    }
+  },
+  "packages": {
+    "TXC.RCS.Application": {
+      "path": "src/TXC.RCS.Application/TXC.RCS.Application.abppkg",
+      "folder": "src"
+    },
+    "TXC.RCS.Application.Tests": {
+      "path": "test/TXC.RCS.Application.Tests/TXC.RCS.Application.Tests.abppkg",
+      "folder": "test"
+    },
+    "TXC.RCS.Domain.Shared": {
+      "path": "src/TXC.RCS.Domain.Shared/TXC.RCS.Domain.Shared.abppkg",
+      "folder": "src"
+    },
+    "TXC.RCS.Application.Contracts": {
+      "path": "src/TXC.RCS.Application.Contracts/TXC.RCS.Application.Contracts.abppkg",
+      "folder": "src"
+    },
+    "TXC.RCS.HttpApi": {
+      "path": "src/TXC.RCS.HttpApi/TXC.RCS.HttpApi.abppkg",
+      "folder": "src"
+    },
+    "TXC.RCS.HttpApi.Client": {
+      "path": "src/TXC.RCS.HttpApi.Client/TXC.RCS.HttpApi.Client.abppkg",
+      "folder": "src"
+    },
+    "TXC.RCS.EntityFrameworkCore.Tests": {
+      "path": "test/TXC.RCS.EntityFrameworkCore.Tests/TXC.RCS.EntityFrameworkCore.Tests.abppkg",
+      "folder": "test"
+    },
+    "TXC.RCS.EntityFrameworkCore": {
+      "path": "src/TXC.RCS.EntityFrameworkCore/TXC.RCS.EntityFrameworkCore.abppkg",
+      "folder": "src"
+    },
+    "TXC.RCS.TestBase": {
+      "path": "test/TXC.RCS.TestBase/TXC.RCS.TestBase.abppkg",
+      "folder": "test"
+    },
+    "TXC.RCS.Domain.Tests": {
+      "path": "test/TXC.RCS.Domain.Tests/TXC.RCS.Domain.Tests.abppkg",
+      "folder": "test"
+    },
+    "TXC.RCS.HttpApi.Client.ConsoleTestApp": {
+      "path": "test/TXC.RCS.HttpApi.Client.ConsoleTestApp/TXC.RCS.HttpApi.Client.ConsoleTestApp.abppkg",
+      "folder": "test"
+    },
+    "TXC.RCS.DbMigrator": {
+      "path": "src/TXC.RCS.DbMigrator/TXC.RCS.DbMigrator.abppkg",
+      "folder": "src"
+    },
+    "TXC.RCS.HttpApi.Host": {
+      "path": "src/TXC.RCS.HttpApi.Host/TXC.RCS.HttpApi.Host.abppkg",
+      "folder": "src"
+    },
+    "TXC.RCS.Domain": {
+      "path": "src/TXC.RCS.Domain/TXC.RCS.Domain.abppkg",
+      "folder": "src"
+    }
+  }
+}

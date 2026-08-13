@@ -1,0 +1,22 @@
+{
+  "dotrush.roslyn.projectOrSolutionFiles": [
+    "TXC.RCS.sln"
+  ],
+  "dotrush.roslyn.showItemsFromUnimportedNamespaces": true,
+  "dotrush.roslyn.restoreProjectsBeforeLoading": true,
+  "dotrush.roslyn.compileProjectsAfterLoading": true,
+  "dotrush.roslyn.skipUnrecognizedProjects": true,
+  "dotrush.roslyn.compilerDiagnosticsScope": "Project",
+  "dotrush.roslyn.analyzerDiagnosticsScope": "Document",
+  "dotrush.roslyn.diagnosticsFormat": "AsIs",
+  "dotrush.roslyn.dotnetSdkDirectory": "/usr/local/share/dotnet",
+  "editor.lightbulb.enabled": "on",
+  "problems.decorations.enabled": true,
+  "dotnet.defaultSolution": "TXC.RCS.sln",
+  "dotnet.automaticallyCreateSolutionInWorkspace": false,
+  "csharp.suppressDotnetRestoreNotification": true,
+  "files.watcherExclude": {
+    "**/bin/**": true,
+    "**/obj/**": true
+  }
+}

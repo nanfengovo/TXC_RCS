@@ -1,0 +1,40 @@
+{
+  "folders": [
+    {
+      "name": "API",
+      "path": "TXC.RCS.API"
+    },
+    {
+      "name": "UI",
+      "path": "TXC.RCS.UI/soybean-admin"
+    }
+  ],
+  "settings": {
+    "dotnet.defaultSolution": "TXC.RCS.sln",
+    "dotnet.automaticallyCreateSolutionInWorkspace": false,
+    "dotrush.roslyn.projectOrSolutionFiles": [
+      "TXC.RCS.sln"
+    ],
+    "dotrush.roslyn.compileProjectsAfterLoading": true,
+    "dotrush.roslyn.compilerDiagnosticsScope": "Project",
+    "dotrush.roslyn.analyzerDiagnosticsScope": "Document",
+    "dotrush.roslyn.diagnosticsFormat": "AsIs",
+    "dotrush.roslyn.dotnetSdkDirectory": "/usr/local/share/dotnet",
+    "dotrush.roslyn.skipUnrecognizedProjects": true
+  },
+  "extensions": {
+    "recommendations": [
+      "nromanov.dotrush",
+      "chrisgroks.csharpextension",
+      "ms-dotnettools.vscode-dotnet-runtime"
+    ],
+    "unwantedRecommendations": [
+      "anysphere.csharp",
+      "ms-dotnettools.csharp",
+      "ms-dotnettools.csdevkit",
+      "muhammad-sammy.csharp",
+      "dotnetdev-kr-custom.csharp",
+      "chrisatcursor.csharpextension"
+    ]
+  }
+}

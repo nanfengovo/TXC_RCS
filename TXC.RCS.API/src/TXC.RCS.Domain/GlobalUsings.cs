@@ -1,0 +1,9 @@
+global using System;
+global using System.Collections.Generic;
+global using System.Linq;
+global using System.Threading.Tasks;
+global using TXC.RCS.Tasks.Enums;
+global using TXC.RCS.Tasks.TM;
+global using Volo.Abp;
+global using Volo.Abp.DependencyInjection;
+global using Volo.Abp.Domain.Entities.Auditing;

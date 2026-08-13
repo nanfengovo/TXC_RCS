@@ -1,0 +1,29 @@
+# OS / IDE
+.DS_Store
+.idea/
+.vs/
+*.user
+*.suo
+
+# Build
+**/[Bb]in/
+**/[Oo]bj/
+**/[Ll]og/
+**/Logs/
+**/node_modules/
+**/dist/
+**/.turbo/
+
+# Secrets / local overrides (keep template appsettings committed)
+**/appsettings.*.local.json
+**/.env
+**/.env.*
+
+# Misc
+*.log
+*.tmp
+
+**/appsettings.secrets.json
+
+# Nested UI repo — add as submodule later if needed
+TXC.RCS.UI/soybean-admin/
