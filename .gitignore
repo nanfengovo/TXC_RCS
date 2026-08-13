@@ -25,5 +25,7 @@
 
 **/appsettings.secrets.json
 
-# Nested UI repo — add as submodule later if needed
-TXC.RCS.UI/soybean-admin/
+# Frontend package managers / caches
+**/.pnpm-store/
+**/pnpm-lock.yaml.bak
+**/.eslintcache
