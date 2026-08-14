@@ -30,7 +30,7 @@ public class AddressMapDataSeedContributor : IDataSeedContributor, ITransientDep
             return;
         }
 
-        await InsertIfNotExistsAsync("ERACK:1", tmTarget: 1, tmStorage: "", remark: "Erack 1");
+        await InsertIfNotExistsAsync("ERACK", tmTarget: 1, tmStorage: "", remark: "Erack 1");
         await InsertIfNotExistsAsync("H044", tmTarget: 2, tmStorage: "", remark: "");
         await InsertIfNotExistsAsync("H099", tmTarget: 3, tmStorage: "", remark: "机台示例");
     }

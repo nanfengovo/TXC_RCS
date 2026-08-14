@@ -49,6 +49,16 @@
     <PackageReference Include="Volo.Abp.Studio.Client.AspNetCore" Version="3.0.7" />
   </ItemGroup>
 
+  <!-- 把引用项目生成的 XML 注释拷到 Host 输出目录，供 Swagger IncludeXmlComments -->
+  <Target Name="CopyXmlDocumentation" AfterTargets="Build">
+    <ItemGroup>
+      <_XmlDocs Include="$(MSBuildThisFileDirectory)..\TXC.RCS.Domain.Shared\bin\$(Configuration)\$(TargetFramework)\TXC.RCS.Domain.Shared.xml" />
+      <_XmlDocs Include="$(MSBuildThisFileDirectory)..\TXC.RCS.Application.Contracts\bin\$(Configuration)\$(TargetFramework)\TXC.RCS.Application.Contracts.xml" />
+      <_XmlDocs Include="$(MSBuildThisFileDirectory)..\TXC.RCS.Application\bin\$(Configuration)\$(TargetFramework)\TXC.RCS.Application.xml" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_XmlDocs)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="Exists('%(_XmlDocs.Identity)')" />
+  </Target>
+
   <ItemGroup>
     <Compile Remove="Logs\**" />
     <Content Remove="Logs\**" />

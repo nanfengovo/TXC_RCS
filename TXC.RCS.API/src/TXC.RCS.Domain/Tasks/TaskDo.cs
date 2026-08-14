@@ -270,13 +270,14 @@ namespace TXC.RCS.Tasks
             return new TaskDo(id, orderId, args, templateCode, templateVersion);
         }
 
-        public void FreezeTmMapping(int fromTmTarget,string fromTmStorage,int toTmTarget,string toTmStorage)
+        public void FreezeTmMapping(int fromTmTarget, string? fromTmStorage, int toTmTarget, string? toTmStorage)
         {
             EnsureNotClosed();
             FromTmTarget = fromTmTarget;
-            FromTmStorage = Check.NotNullOrWhiteSpace(fromTmStorage, nameof(fromTmStorage), 64);
+            // TM storage/port 可空：无值时冻结为空串，发给 TM 的 storage 允许 ""
+            FromTmStorage = fromTmStorage?.Trim() ?? "";
             ToTmTarget = toTmTarget;
-            ToTmStorage = Check.NotNullOrWhiteSpace(toTmStorage, nameof(toTmStorage), 64);
+            ToTmStorage = toTmStorage?.Trim() ?? "";
         }
 
         public void FreezeOptionCodes(string fetchOptionCode, string putOptionCode)

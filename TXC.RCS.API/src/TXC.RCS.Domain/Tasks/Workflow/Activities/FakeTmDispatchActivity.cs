@@ -9,9 +9,10 @@ using TXC.RCS.Tasks.EventConst;
 
 namespace TXC.RCS.Tasks.Workflow.Activities
 {
-    public class FakeTmDispatchActivity:IWorkflowActivity
+    /// <summary>仅供测试手工 new；生产勿注册为 IWorkflowActivity。</summary>
+    public class FakeTmDispatchActivity
     {
-        public string Name => WorkflowActivities.TmDispatch;
+        //public string Name => WorkflowActivities.TmDispatch;
         public Task ExecuteAsync(ActivityContext ctx, CancellationToken ct = default)
         {
             ctx.Task.AssignSerial(TaskLegs.Fetch, $"{ctx.Task.Id}-FETCH");

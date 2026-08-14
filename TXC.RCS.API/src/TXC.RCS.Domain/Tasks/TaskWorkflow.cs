@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TXC.RCS.Tasks.Workflow;
 using Volo.Abp.Domain.Services;
-using Volo.Abp.EventBus.Distributed;
+using TXC.RCS.Tasks.EventConst;
 
 namespace TXC.RCS.Tasks
 {
@@ -30,12 +30,15 @@ namespace TXC.RCS.Tasks
             await RunFromCurrentAsync(task, incoming: null, ct);
         }
 
-        public async Task<IReadOnlyDictionary<string, string>> SignalAsync(TaskDo task, TaskSignal signal, CancellationToken ct = default)
+        public async Task<WorkflowSignalResult> SignalAsync(TaskDo task, TaskSignal signal, CancellationToken ct = default)
         {
+            // 已结束：幂等成功，停 TM 重试
             if (task.TaskLifecycleStatus is TaskLifecycleStatus.Succeeded
                 or TaskLifecycleStatus.Failed
                 or TaskLifecycleStatus.Canceled)
-                return Empty;
+            {
+                return ReplayIfPermit(task, signal) ?? WorkflowSignalResult.Ok(Empty);
+            }
 
             var leg = signal.Leg;
             if (leg == null && !string.IsNullOrWhiteSpace(signal.TaskSerial))
@@ -48,23 +51,72 @@ namespace TXC.RCS.Tasks
                 TaskSerial = signal.TaskSerial,
                 AgvSerial = signal.AgvSerial
             };
-            IReadOnlyDictionary<string, string> response = Empty;
-
-            if (!string.IsNullOrWhiteSpace(effective.AgvSerial))
-                task.RememberAgv(effective.AgvSerial!);
 
             var def = await _templates.ResolveAsync(task, ct);
+
+            if (task.StepIndex < 0 || task.StepIndex >= def.Steps.Count)
+                throw new BusinessException("RCS:InvalidStep").WithData("StepIndex", task.StepIndex);
+
             var step = def.Steps[task.StepIndex];
 
-            if (step.Wait == null || !step.Wait.Matches(effective))
-                return Empty; // 不匹配：忽略，别推进
+            // 当前步匹配 → 推进
+            if (step.Wait != null && step.Wait.Matches(effective))
+            {
+                if (!string.IsNullOrWhiteSpace(effective.AgvSerial))
+                    task.RememberAgv(effective.AgvSerial!);
 
-            if (!string.IsNullOrWhiteSpace(step.Activity))
-                response = await _activities.ExecuteAsync(step.Activity, task, effective, ct);
+                IReadOnlyDictionary<string, string> response = Empty;
+                if (!string.IsNullOrWhiteSpace(step.Activity))
+                    response = await _activities.ExecuteAsync(step.Activity, task, effective, ct);
 
-            task.AdvanceStep();
-            await RunFromCurrentAsync(task, effective, ct);
-            return response;
+                task.AdvanceStep();
+                await RunFromCurrentAsync(task, effective, ct);
+                return WorkflowSignalResult.Ok(response);
+            }
+
+            // 当前步之前已出现过同一 Wait → 落后/重复，不推进
+            if (WasAlreadyConsumed(def, task.StepIndex, effective))
+                return ReplayIfPermit(task, effective) ?? WorkflowSignalResult.Ok(Empty);
+
+            // 超前乱序或错腿
+            return WorkflowSignalResult.Reject(
+                expectedEvent: step.Wait?.Event ?? task.WaitingEvent,
+                expectedLeg: step.Wait?.Leg ?? task.ActiveLeg,
+                actualEvent: effective.Event,
+                actualLeg: effective.Leg);
+        }
+
+        private static bool WasAlreadyConsumed(
+            WorkflowTemplateDefinition def,
+            int currentStepIndex,
+            TaskSignal signal)
+        {
+            for (var i = 0; i < currentStepIndex && i < def.Steps.Count; i++)
+            {
+                var wait = def.Steps[i].Wait;
+                if (wait != null && wait.Matches(signal))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>许可类重复：再给 option_code，避免 TM 重推 permit 时拿不到码。</summary>
+        private static WorkflowSignalResult? ReplayIfPermit(TaskDo task, TaskSignal signal)
+        {
+            if (signal.Event != TaskEvents.PermitRequested)
+                return null;
+
+            var leg = signal.Leg
+                ?? (!string.IsNullOrWhiteSpace(signal.TaskSerial)
+                    ? task.ResolveLegBySerial(signal.TaskSerial!)
+                    : task.ActiveLeg)
+                ?? TaskLegs.Fetch;
+
+            return WorkflowSignalResult.Ok(new Dictionary<string, string>
+            {
+                ["option_code"] = task.GetOptionCode(leg),
+                ["task_serial"] = signal.TaskSerial ?? ""
+            });
         }
 
         private async Task RunFromCurrentAsync(TaskDo task, TaskSignal? incoming, CancellationToken ct)

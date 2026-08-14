@@ -74,21 +74,19 @@ public class TaskCreationManager : DomainService
         }
 
         var toMap = await FindEnabledMapAsync(args.ToAddress, ct);
-        var fromStorage = Check.NotNullOrWhiteSpace(fromMap.TmStorage, nameof(fromMap.TmStorage), 64);
-        var toStorage = Check.NotNullOrWhiteSpace(toMap.TmStorage, nameof(toMap.TmStorage), 64);
-        task.FreezeTmMapping(fromMap.TmTarget, fromStorage, toMap.TmTarget, toStorage);
+        task.FreezeTmMapping(fromMap.TmTarget, fromMap.TmStorage, toMap.TmTarget, toMap.TmStorage);
 
         // 5 OptionCode 占位
         task.FreezeOptionCodes("0,0", "0,0");
 
         // 6 落库
-        await _tasks.InsertAsync(task, autoSave: true, cancellationToken: ct);
+        await _tasks.InsertAsync(task, autoSave: false, cancellationToken: ct);
 
         // 7 启动工作流
         await _workflow.StartAsync(task, ct);
 
         // 8 持久化运行时字段（WaitingEvent 等）
-        await _tasks.UpdateAsync(task, autoSave: true, cancellationToken: ct);
+        await _tasks.UpdateAsync(task, autoSave: false, cancellationToken: ct);
 
         return task;
     }

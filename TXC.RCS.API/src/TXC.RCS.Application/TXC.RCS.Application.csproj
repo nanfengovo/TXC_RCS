@@ -6,7 +6,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <RootNamespace>TXC.RCS</RootNamespace>
+    <!-- 供 Swagger 显示 /// 注释；1591=缺注释警告忽略 -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ApiExplorerSettings / AllowAnonymous 等 MVC 特性 -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TXC.RCS.Domain\TXC.RCS.Domain.csproj" />

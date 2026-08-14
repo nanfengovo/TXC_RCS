@@ -9,6 +9,6 @@ namespace TXC.RCS.Tasks.Workflow
     public interface ITaskWorkflow
     {
         Task StartAsync(TaskDo task, CancellationToken ct = default);
-        Task<IReadOnlyDictionary<string, string>> SignalAsync(TaskDo task, TaskSignal signal, CancellationToken ct = default);
+        Task<WorkflowSignalResult> SignalAsync(TaskDo task, TaskSignal signal, CancellationToken ct = default);
     }
 }

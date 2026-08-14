@@ -23,6 +23,7 @@ using Volo.Abp.Account;
 using Volo.Abp.Account.Web;
 using Volo.Abp.AspNetCore.MultiTenancy;
 using Volo.Abp.AspNetCore.Mvc;
+using Volo.Abp.AspNetCore.Mvc.AntiForgery;
 using Volo.Abp.Autofac;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
@@ -44,6 +45,8 @@ using Microsoft.Extensions.Options;
 using TXC.RCS.Options;
 using TXC.RCS.Tasks.TM;
 using TXC.RCS.Tm;
+using TXC.RCS.Swagger;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace TXC.RCS;
 
@@ -109,6 +112,13 @@ public class RCSHttpApiHostModule : AbpModule
 
 
         var hostingEnvironment = context.Services.GetHostingEnvironment();
+
+        // Swagger / 纯 API 调用没有 antiforgery cookie；未带有效 Bearer 时 ABP 会校验并返回空 400。
+        // S1：关闭自动校验，后续 TM/MES 回调也不会被拦。
+        Configure<AbpAntiForgeryOptions>(options =>
+        {
+            options.AutoValidate = false;
+        });
 
         if (!configuration.GetValue<bool>("App:DisablePII"))
         {
@@ -243,10 +253,61 @@ public class RCSHttpApiHostModule : AbpModule
             null,
             options =>
             {
-                options.SwaggerDoc("v1", new OpenApiInfo { Title = "RCS API", Version = "v1" });
-                options.DocInclusionPredicate((docName, description) => true);
+                // —— 标签页 1：ABP 平台（账号 / 身份 / 权限…）——
+                options.SwaggerDoc(RcsSwaggerDocs.Platform, new OpenApiInfo
+                {
+                    Title = "RCS API",
+                    Version = "v1",
+                    Description = "ABP 平台与系统接口（Identity / Account / Permission / Setting 等）。"
+                });
+
+                // —— 标签页 2：TXC RCS 业务（自研 API 都进这里）——
+                options.SwaggerDoc(RcsSwaggerDocs.Biz, new OpenApiInfo
+                {
+                    Title = "TXC RCS 业务",
+                    Version = "v1",
+                    Description =
+                        "晶技 RCS 业务接口：任务创建、工作流、TM 回调、Erack、MES 等。\n\n" +
+                        "新增 AppService / Controller 时请加：\n" +
+                        $"[ApiExplorerSettings(GroupName = \"{RcsSwaggerDocs.Biz}\")]"
+                });
+
+                // 按 GroupName 分流到不同文档；未标注的进平台页
+                options.DocInclusionPredicate((docName, description) =>
+                {
+                    var group = description.GroupName;
+                    if (string.Equals(docName, RcsSwaggerDocs.Biz, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return string.Equals(group, RcsSwaggerDocs.Biz, StringComparison.OrdinalIgnoreCase);
+                    }
+
+                    // Platform(v1)：排除业务分组
+                    return !string.Equals(group, RcsSwaggerDocs.Biz, StringComparison.OrdinalIgnoreCase);
+                });
+
                 options.CustomSchemaIds(type => type.FullName);
+                IncludeXmlCommentsIfPresent(options);
             });
+    }
+
+    /// <summary>把各项目生成的 *.xml 注释灌进 Swagger（字段说明 / remarks）。</summary>
+    private static void IncludeXmlCommentsIfPresent(SwaggerGenOptions options)
+    {
+        var baseDir = AppContext.BaseDirectory;
+        foreach (var name in new[]
+                 {
+                     "TXC.RCS.Application.Contracts.xml",
+                     "TXC.RCS.Application.xml",
+                     "TXC.RCS.Domain.Shared.xml",
+                     "TXC.RCS.HttpApi.Host.xml"
+                 })
+        {
+            var path = Path.Combine(baseDir, name);
+            if (File.Exists(path))
+            {
+                options.IncludeXmlComments(path, includeControllerXmlComments: true);
+            }
+        }
     }
 
     private void ConfigureCors(ServiceConfigurationContext context, IConfiguration configuration)
@@ -316,7 +377,9 @@ public class RCSHttpApiHostModule : AbpModule
         app.UseSwagger();
         app.UseAbpSwaggerUI(options =>
         {
-            options.SwaggerEndpoint("/swagger/v1/swagger.json", "RCS API");
+            // 下拉框里的两个「标签页」
+            options.SwaggerEndpoint($"/swagger/{RcsSwaggerDocs.Biz}/swagger.json", RcsSwaggerDocs.BizDisplayName);
+            options.SwaggerEndpoint($"/swagger/{RcsSwaggerDocs.Platform}/swagger.json", RcsSwaggerDocs.PlatformDisplayName);
 
             var configuration = context.ServiceProvider.GetRequiredService<IConfiguration>();
             options.OAuthClientId(configuration["AuthServer:SwaggerClientId"]);
