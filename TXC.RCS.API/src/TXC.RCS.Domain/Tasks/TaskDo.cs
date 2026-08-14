@@ -173,6 +173,10 @@ namespace TXC.RCS.Tasks
 
         public string PutOptionCode { get; private set; } = string.Empty;
 
+        public string OptionCodeSchemaCode { get; private set; } = string.Empty;
+
+        public int OptionCodeSchemaVersion { get; private set; }
+
         //----------------- 生命周期（粗颗粒度，给前端使用）---------------
 
         /// <summary>
@@ -285,6 +289,19 @@ namespace TXC.RCS.Tasks
             EnsureNotClosed();
             FetchOptionCode = Check.NotNullOrWhiteSpace(fetchOptionCode, nameof(fetchOptionCode), 64);
             PutOptionCode = Check.NotNullOrWhiteSpace(putOptionCode, nameof(putOptionCode), 64);
+        }
+
+        public void FreezeOptionSchema(string schemaCode, int schemaVersion)
+        {
+            EnsureNotClosed();
+            OptionCodeSchemaCode = Check.NotNullOrWhiteSpace(schemaCode, nameof(schemaCode), 32);
+            if (schemaVersion <= 0)
+            {
+                throw new BusinessException("RCS:InvalidOptionCodeSchemaVersion")
+                    .WithData("Version", schemaVersion);
+            }
+
+            OptionCodeSchemaVersion = schemaVersion;
         }
 
         public string GetOptionCode(string leg)

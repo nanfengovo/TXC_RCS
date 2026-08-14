@@ -16,8 +16,8 @@ public class CreateManualTaskDto
     public string FromAddress { get; set; } = "";
 
     /// <summary>
-    /// 起点 Port / Erack 口位（可空）。
-    /// S1 可不传；真 Erack 时对应料口 id，并持久化到任务 <c>FromPort</c>。
+    /// 起点设备库位（Fetch 腿 TaskCode 的 equipmentSlot）。须为整数。
+    /// Schema 中 <c>source=port</c> 且 required 时必填。
     /// </summary>
     public string? FromPort { get; set; }
 
@@ -27,7 +27,8 @@ public class CreateManualTaskDto
     public string ToAddress { get; set; } = "";
 
     /// <summary>
-    /// 终点 Port（可空）。
+    /// 终点设备库位（Put 腿 TaskCode 的 equipmentSlot）。须为整数。
+    /// Schema 中 <c>source=port</c> 且 required 时必填。
     /// </summary>
     public string? ToPort { get; set; }
 
@@ -36,4 +37,11 @@ public class CreateManualTaskDto
     /// 空字符串会被服务端收成 null。
     /// </summary>
     public string? ContainerId { get; set; }
+
+    /// <summary>
+    /// TaskCode 人工字段（<c>source=args</c>）。key 对齐 GET option-code-schema 的 Inputs。
+    /// 晶技 DEMO：<c>armSide</c>、<c>agvSlot</c>；不要传 <c>equipmentType</c> / <c>pickPlace</c>。
+    /// 设备库位走 <see cref="FromPort"/> / <see cref="ToPort"/>，不要放进本字典。
+    /// </summary>
+    public System.Collections.Generic.Dictionary<string, int>? OptionFields { get; set; }
 }

@@ -109,6 +109,7 @@ public class RCSDbContext :
             b.Property(x => x.ToPort).HasMaxLength(16);
             b.Property(x => x.FetchOptionCode).HasMaxLength(64);
             b.Property(x => x.PutOptionCode).HasMaxLength(64);
+            b.Property(x => x.OptionCodeSchemaCode).HasMaxLength(32);
             b.Property(x => x.FetchTaskSerial).HasMaxLength(128);
             b.Property(x => x.PutTaskSerial).HasMaxLength(128);
             b.HasIndex(x => x.FetchTaskSerial);

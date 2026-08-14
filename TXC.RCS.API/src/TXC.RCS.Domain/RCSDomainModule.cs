@@ -2,7 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TXC.RCS.Localization;
 using TXC.RCS.MultiTenancy;
+using TXC.RCS.Tasks.OptionCode;
 using System;
+using Microsoft.Extensions.Configuration;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.MultiTenancy;
@@ -44,6 +46,8 @@ public class RCSDomainModule : AbpModule
         {
             options.IsEnabled = MultiTenancyConsts.IsEnabled;
         });
+
+        Configure<OptionCodeOptions>(context.Services.GetConfiguration().GetSection("OptionCode"));
 
 
 #if DEBUG

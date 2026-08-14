@@ -40,4 +40,16 @@ public class TaskDto
 
     /// <summary>容器 / 货号（可空）。</summary>
     public string? ContainerId { get; set; }
+
+    /// <summary>取货腿冻结的 option_code（形如 <c>257,131074</c>）。</summary>
+    public string FetchOptionCode { get; set; } = "";
+
+    /// <summary>放货腿冻结的 option_code。</summary>
+    public string PutOptionCode { get; set; } = "";
+
+    /// <summary>编码所用 Schema 代码。</summary>
+    public string? OptionCodeSchemaCode { get; set; }
+
+    /// <summary>编码所用 Schema 版本。</summary>
+    public int OptionCodeSchemaVersion { get; set; }
 }

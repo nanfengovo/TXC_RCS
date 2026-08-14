@@ -1,9 +1,7 @@
-using System;
 using System.Threading;
-using System.Threading.Tasks;
 using TXC.RCS.Locations;
+using TXC.RCS.Tasks.OptionCode;
 using TXC.RCS.Tasks.Workflow;
-using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Domain.Services;
 
@@ -16,19 +14,28 @@ public class TaskCreationManager : DomainService
     private readonly IRepository<AddressMap, Guid> _addressMaps;
     private readonly IRepository<TaskDo, string> _tasks;
     private readonly ITaskWorkflow _workflow;
+    private readonly IOptionCodeSchemaStore _optionSchemas;
+    private readonly IOptionCodeAssembler _optionAssembler;
+    private readonly IOptionCodeEncoder _optionEncoder;
 
     public TaskCreationManager(
         ITaskIdGenerator ids,
         IErackGate erack,
         IRepository<AddressMap, Guid> addressMaps,
         IRepository<TaskDo, string> tasks,
-        ITaskWorkflow workflow)
+        ITaskWorkflow workflow,
+        IOptionCodeSchemaStore optionSchemas,
+        IOptionCodeAssembler optionAssembler,
+        IOptionCodeEncoder optionEncoder)
     {
         _ids = ids;
         _erack = erack;
         _addressMaps = addressMaps;
         _tasks = tasks;
         _workflow = workflow;
+        _optionSchemas = optionSchemas;
+        _optionAssembler = optionAssembler;
+        _optionEncoder = optionEncoder;
     }
 
     public async Task<TaskDo> CreateAndStartAsync(
@@ -76,8 +83,15 @@ public class TaskCreationManager : DomainService
         var toMap = await FindEnabledMapAsync(args.ToAddress, ct);
         task.FreezeTmMapping(fromMap.TmTarget, fromMap.TmStorage, toMap.TmTarget, toMap.TmStorage);
 
-        // 5 OptionCode 占位
-        task.FreezeOptionCodes("0,0", "0,0");
+        // 5 按当前厂 Schema 编码并冻结（许可只回放，不再计算）
+        var schema = _optionSchemas.GetPublished();
+        var source = orderId.HasValue ? OptionCodeSourceKind.Mes : OptionCodeSourceKind.Manual;
+        var fetchFields = _optionAssembler.Assemble(schema, args, fromMap, toMap, TaskLegs.Fetch, source);
+        var putFields = _optionAssembler.Assemble(schema, args, fromMap, toMap, TaskLegs.Put, source);
+        task.FreezeOptionCodes(
+            _optionEncoder.Encode(schema, fetchFields),
+            _optionEncoder.Encode(schema, putFields));
+        task.FreezeOptionSchema(schema.Code, schema.Version);
 
         // 6 落库
         await _tasks.InsertAsync(task, autoSave: false, cancellationToken: ct);

@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using TXC.RCS.Tasks.OptionCode;
 using Volo.Abp.Application.Services;
 
 namespace TXC.RCS.Tasks;
@@ -26,7 +27,7 @@ public interface ITaskAppService : IApplicationService
     ///   <item>ErackGate 校验（S1 = NoOp）</item>
     ///   <item>生成任务 Id（人工不传 → <c>ITaskIdGenerator</c>）</item>
     ///   <item>AddressMap 解析并冻结 TM target/storage</item>
-    ///   <item>冻结 option_code（S1 占位 <c>0,0</c>）</item>
+    ///   <item>按 Published Schema 编码并冻结 option_code（缺 required 字段则创建失败）</item>
     ///   <item>落库 → 启动工作流 → 第一步 <c>Tm.Dispatch</c>（Sim/Real 由配置决定）</item>
     /// </list>
     /// <para><b>成功后典型状态</b>：<c>LifecycleStatus=Running</c>，
@@ -35,7 +36,16 @@ public interface ITaskAppService : IApplicationService
     /// <para><b>地址码</b>须存在于 <c>_RCS.TXC_AddressMaps</c> 且 Enabled
     /// （种子示例：<c>ERACK</c> / <c>H044</c> / <c>H099</c>）。</para>
     /// </remarks>
-    /// <param name="input">起终点与可选货号；Port / ContainerId 可空。</param>
-    /// <returns>创建后的任务快照（含 serial，便于 Postman 模拟 TM 回调）。</returns>
+    /// <param name="input">起终点、Port（设备库位）与 optionFields（见 GET option-code-schema 的 Inputs）。</param>
+    /// <returns>创建后的任务快照（含 serial 与冻结的 option_code）。</returns>
     Task<TaskDto> CreateManualAsync(CreateManualTaskDto input);
+
+    /// <summary>
+    /// 当前厂 Published TaskCode Schema（位表 + 人工建单 Inputs 绑定）。
+    /// </summary>
+    /// <remarks>
+    /// HTTP：<c>GET /api/app/task/option-code-schema</c>。
+    /// 画位表用 <c>Parts</c>；动态表单只渲染 <c>Inputs</c>（不要把 master/leg 做成输入）。
+    /// </remarks>
+    Task<PublishedOptionCodeSchemaDto> GetOptionCodeSchemaAsync();
 }

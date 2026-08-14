@@ -1,0 +1,34 @@
+{
+    "code": "txc_demo",
+    "version": 1,
+    "title": "TXC DEMO",
+    "wire": { "join": ",", "lsbBit1": true },
+    "parts": [
+      {
+        "key": "codeA",
+        "label": "TaskCodea",
+        "width": 32,
+        "fields": [
+          { "key": "armSide", "label": "机械臂运行侧", "bitStart": 1, "bitEnd": 8, "required": true, "source": "args",
+            "enum": { "1": "左侧", "2": "右侧" } },
+          { "key": "agvSlot", "label": "AGV库位编号", "bitStart": 9, "bitEnd": 16, "required": true, "source": "args",
+            "min": 1, "max": 6 },
+          { "key": "boxType", "label": "料盒类型", "bitStart": 17, "bitEnd": 24, "required": false, "source": "args" },
+          { "key": "machineIndex", "label": "机台索引", "bitStart": 25, "bitEnd": 32, "required": false, "source": "args" }
+        ]
+      },
+      {
+        "key": "codeB",
+        "label": "TaskCodeb",
+        "width": 32,
+        "fields": [
+          { "key": "equipmentType", "label": "设备类型", "bitStart": 1, "bitEnd": 8, "required": true, "source": "master",
+            "enum": { "1": "Rack", "2": "H099机台", "3": "H044机台" } },
+          { "key": "equipmentSlot", "label": "设备库位编号", "bitStart": 9, "bitEnd": 16, "required": true, "source": "port" },
+          { "key": "pickPlace", "label": "取放标识", "bitStart": 17, "bitEnd": 24, "required": true, "source": "leg",
+            "enum": { "1": "车身到设备(P)", "2": "设备到车身(G)" } },
+          { "key": "machineNo", "label": "机台编号", "bitStart": 25, "bitEnd": 32, "required": false, "source": "master" }
+        ]
+      }
+    ]
+  }

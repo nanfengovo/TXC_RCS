@@ -20,5 +20,8 @@ namespace TXC.RCS.Tasks
         public string? PutMaterialCode { get; init; }
         public string? FetchEquipmentCode { get; init; }
         public string? PutEquipmentCode { get; init; }
+
+        /// <summary>人工/MES 传入的 TaskCode 字段，key 对齐当前 Schema。</summary>
+        public IReadOnlyDictionary<string, int>? OptionFields { get; init; }
     }
 }

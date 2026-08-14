@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TXC.RCS.Swagger;
+using TXC.RCS.Tasks.OptionCode;
 using Volo.Abp;
 
 namespace TXC.RCS.Tasks;
@@ -17,10 +18,12 @@ namespace TXC.RCS.Tasks;
 public class TaskAppService : RCSAppService, ITaskAppService
 {
     private readonly TaskCreationManager _creator;
+    private readonly IOptionCodeSchemaStore _optionSchemas;
 
-    public TaskAppService(TaskCreationManager creator)
+    public TaskAppService(TaskCreationManager creator, IOptionCodeSchemaStore optionSchemas)
     {
         _creator = creator;
+        _optionSchemas = optionSchemas;
     }
 
     /// <inheritdoc />
@@ -41,13 +44,22 @@ public class TaskAppService : RCSAppService, ITaskAppService
             ToAddress = input.ToAddress.Trim(),
             ToPort = NullIfWhiteSpace(input.ToPort),
             // 空串 → null，避免把 "" 当有效货号写入
-            ContainerId = NullIfWhiteSpace(input.ContainerId)
+            ContainerId = NullIfWhiteSpace(input.ContainerId),
+            OptionFields = input.OptionFields
         };
 
         // id: null → 人工任务号；MES 接入时传 job_id
         var task = await _creator.CreateAndStartAsync(args, id: null);
 
         return Map(task);
+    }
+
+    /// <inheritdoc />
+    [AllowAnonymous]
+    public Task<PublishedOptionCodeSchemaDto> GetOptionCodeSchemaAsync()
+    {
+        var schema = _optionSchemas.GetPublished();
+        return Task.FromResult(OptionCodeSchemaMapper.ToPublishedDto(schema));
     }
 
     /// <summary>聚合 → 对外 DTO（只映射联调所需字段）。</summary>
@@ -61,7 +73,11 @@ public class TaskAppService : RCSAppService, ITaskAppService
         PutTaskSerial = task.PutTaskSerial,
         FromAddress = task.FromAddress,
         ToAddress = task.ToAddress,
-        ContainerId = task.ContainerId
+        ContainerId = task.ContainerId,
+        FetchOptionCode = task.FetchOptionCode,
+        PutOptionCode = task.PutOptionCode,
+        OptionCodeSchemaCode = task.OptionCodeSchemaCode,
+        OptionCodeSchemaVersion = task.OptionCodeSchemaVersion
     };
 
     /// <summary>空白字符串统一当成「未传」。</summary>
