@@ -47,8 +47,14 @@ public sealed class OptionCodeField
 
     public bool Reserved { get; init; }
 
-    /// <summary>args | master | leg | port | task</summary>
+    /// <summary>args | master | leg | port | task | const</summary>
     public string Source { get; init; } = "args";
+
+    /// <summary>source=const 时写入的固定值（如 AGV 库位恒 0）。</summary>
+    public int? ConstValue { get; init; }
+
+    /// <summary>source=task 时绑定 CreateTaskArgs 属性（如 fetchCount）。</summary>
+    public string? Bind { get; init; }
 
     public int? Min { get; init; }
 

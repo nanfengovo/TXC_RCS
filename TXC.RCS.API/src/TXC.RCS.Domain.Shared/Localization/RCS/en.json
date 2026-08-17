@@ -4,6 +4,9 @@
     "AppName": "RCS",
     "Menu:Home": "Home",
     "LongWelcomeMessage": "Welcome to the application. This is a startup project based on the ABP framework. For more information visit",
-    "Welcome": "Welcome"
+    "Welcome": "Welcome",
+    "RCS:StationPointNotFound": "No station point for address {Address}, port {Port}. Maintain arm side and equipment type.",
+    "RCS:StationPointPortRequired": "Address {Address} requires a port to match a station point.",
+    "RCS:StationPointFieldMissing": "Station point {Address}/{Port} is missing field {Field}."
   }
 }

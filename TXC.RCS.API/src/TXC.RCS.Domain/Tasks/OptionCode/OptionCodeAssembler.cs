@@ -1,88 +1,96 @@
+using System.Threading;
 using TXC.RCS.Locations;
 
 namespace TXC.RCS.Tasks.OptionCode;
 
-public enum OptionCodeSourceKind
-{
-    Manual,
-    Mes
-}
-
 public interface IOptionCodeAssembler
 {
-    IReadOnlyDictionary<string, int> Assemble(
+    Task<IReadOnlyDictionary<string, int>> AssembleAsync(
         OptionCodeSchema schema,
         CreateTaskArgs args,
-        AddressMap fromMap,
-        AddressMap toMap,
+        string address,
+        string? port,
         string leg,
-        OptionCodeSourceKind source);
+        CancellationToken ct = default);
 }
 
 public class OptionCodeAssembler : IOptionCodeAssembler, ITransientDependency
 {
-    public IReadOnlyDictionary<string, int> Assemble(
+    private readonly IStationPointLookup _points;
+
+    public OptionCodeAssembler(IStationPointLookup points)
+    {
+        _points = points;
+    }
+
+    public async Task<IReadOnlyDictionary<string, int>> AssembleAsync(
         OptionCodeSchema schema,
         CreateTaskArgs args,
-        AddressMap fromMap,
-        AddressMap toMap,
+        string address,
+        string? port,
         string leg,
-        OptionCodeSourceKind source)
+        CancellationToken ct = default)
     {
-        // S1：Mes 与 Manual 共用取值；以后在此补 Erack/MES，不要分叉 Encoder
-        _ = source;
-
-        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        if (args.OptionFields != null)
+        var fields = schema.Parts.SelectMany(p => p.Fields).Where(f => !f.Reserved).ToList();
+        IReadOnlyDictionary<string, int>? master = null;
+        if (fields.Any(f => f.Source == "master"))
         {
-            foreach (var kv in args.OptionFields)
-            {
-                map[kv.Key] = kv.Value;
-            }
+            master = await _points.GetMasterValuesAsync(address, port, ct);
         }
 
-        var station = leg == TaskLegs.Fetch ? fromMap : toMap;
-        var port = leg == TaskLegs.Fetch ? args.FromPort : args.ToPort;
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var field in schema.Parts.SelectMany(p => p.Fields))
+        foreach (var f in fields)
         {
-            if (field.Reserved || map.ContainsKey(field.Key))
+            switch (f.Source)
             {
-                continue;
-            }
+                case "const":
+                    if (f.ConstValue is int c)
+                    {
+                        map[f.Key] = c;
+                    }
 
-            switch (field.Source)
-            {
-                case "leg":
-                    map[field.Key] = leg == TaskLegs.Fetch ? 2 : 1;
                     break;
-                case "master":
-                    if (field.Key == "equipmentType")
-                    {
-                        map[field.Key] = EquipmentTypeOf(station.AddressCode);
-                    }
-                    else if (field.Key == "machineNo")
-                    {
-                        map[field.Key] = station.TmTarget;
-                    }
-
+                case "leg":
+                    map[f.Key] = leg == TaskLegs.Fetch ? 2 : 1;
                     break;
                 case "port":
                     if (int.TryParse(port, out var slot))
                     {
-                        map[field.Key] = slot;
+                        map[f.Key] = slot;
+                    }
+
+                    break;
+                case "master":
+                    if (master != null && TryGetIgnoreCase(master, f.Key, out var mv))
+                    {
+                        map[f.Key] = mv;
+                    }
+                    else if (f.Required)
+                    {
+                        throw new BusinessException("RCS:StationPointFieldMissing")
+                            .WithData("Address", address)
+                            .WithData("Port", port ?? "")
+                            .WithData("Field", f.Key);
                     }
 
                     break;
                 case "task":
-                    if (field.Key == "fetchBoxCount" && args.FetchCount is int fc)
+                    var bind = f.Bind ?? f.Key;
+                    if (bind.Equals("fetchCount", StringComparison.OrdinalIgnoreCase) && args.FetchCount is int fc)
                     {
-                        map[field.Key] = fc;
+                        map[f.Key] = fc;
+                    }
+                    else if (bind.Equals("putCount", StringComparison.OrdinalIgnoreCase) && args.PutCount is int pc)
+                    {
+                        map[f.Key] = pc;
                     }
 
-                    if (field.Key == "putBoxCount" && args.PutCount is int pc)
+                    break;
+                case "args":
+                    if (args.OptionFields != null && TryGetIgnoreCase(args.OptionFields, f.Key, out var av))
                     {
-                        map[field.Key] = pc;
+                        map[f.Key] = av;
                     }
 
                     break;
@@ -92,12 +100,23 @@ public class OptionCodeAssembler : IOptionCodeAssembler, ITransientDependency
         return map;
     }
 
-    private static int EquipmentTypeOf(string addressCode) => addressCode.ToUpperInvariant() switch
+    private static bool TryGetIgnoreCase(IReadOnlyDictionary<string, int> source, string key, out int value)
     {
-        "ERACK" => 1,
-        "H099" => 2,
-        "H044" => 3,
-        _ => throw new BusinessException("RCS:OptionCodeEquipmentTypeUnknown")
-            .WithData("Address", addressCode)
-    };
+        if (source.TryGetValue(key, out value))
+        {
+            return true;
+        }
+
+        foreach (var kv in source)
+        {
+            if (string.Equals(kv.Key, key, StringComparison.OrdinalIgnoreCase))
+            {
+                value = kv.Value;
+                return true;
+            }
+        }
+
+        value = 0;
+        return false;
+    }
 }

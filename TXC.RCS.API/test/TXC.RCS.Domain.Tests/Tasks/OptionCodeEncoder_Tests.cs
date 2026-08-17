@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using TXC.RCS.Locations;
 using TXC.RCS.Tasks.Enums;
 using TXC.RCS.Tasks.OptionCode;
@@ -20,14 +22,14 @@ public class OptionCodeEncoder_Tests
         var code = Encoder.Encode(schema, new Dictionary<string, int>
         {
             ["armSide"] = 1,
-            ["agvSlot"] = 1,
+            ["agvSlot"] = 0,
             ["equipmentType"] = 1,
             ["pickPlace"] = 2,
             ["machineNo"] = 1,
             ["equipmentSlot"] = 2
         });
 
-        Assert.Equal("257,16908801", code);
+        Assert.Equal("1,16908801", code);
     }
 
     [Fact]
@@ -76,33 +78,103 @@ public class OptionCodeEncoder_Tests
     }
 
     [Fact]
-    public void Assembler_Should_Fill_Leg_And_Master()
+    public async Task Assembler_Should_Fill_From_Point_And_Leg()
     {
-        var from = new AddressMap(Guid.NewGuid(), "ERACK", 1, "");
-        var to = new AddressMap(Guid.NewGuid(), "H044", 2, "");
+        var lookup = new FakePointLookup();
+        var assembler = new OptionCodeAssembler(lookup);
+        var schema = TxcDemoSchema();
+        var args = new CreateTaskArgs
+        {
+            FromAddress = "ERACK",
+            FromPort = "2",
+            ToAddress = "H044",
+            ToPort = "1"
+        };
+
+        var fetch = await assembler.AssembleAsync(schema, args, "ERACK", "2", TaskLegs.Fetch);
+        var put = await assembler.AssembleAsync(schema, args, "H044", "1", TaskLegs.Put);
+
+        Assert.Equal(1, fetch["armSide"]);
+        Assert.Equal(0, fetch["agvSlot"]);
+        Assert.Equal(2, fetch["pickPlace"]);
+        Assert.Equal(1, fetch["equipmentType"]);
+        Assert.Equal(2, fetch["equipmentSlot"]);
+        Assert.Equal(2, put["armSide"]);
+        Assert.Equal(1, put["pickPlace"]);
+        Assert.Equal(3, put["equipmentType"]);
+        Assert.Equal(1, put["equipmentSlot"]);
+        Assert.NotEqual(Encoder.Encode(schema, fetch), Encoder.Encode(schema, put));
+    }
+
+    [Fact]
+    public async Task Assembler_Should_Ignore_OptionFields_Overwrite_Of_Master()
+    {
+        var lookup = new FakePointLookup();
+        var assembler = new OptionCodeAssembler(lookup);
+        var schema = TxcDemoSchema();
         var args = new CreateTaskArgs
         {
             FromAddress = "ERACK",
             FromPort = "2",
             ToAddress = "H044",
             ToPort = "1",
-            OptionFields = new Dictionary<string, int> { ["armSide"] = 1, ["agvSlot"] = 1 }
+            OptionFields = new Dictionary<string, int>
+            {
+                ["equipmentType"] = 99,
+                ["pickPlace"] = 99,
+                ["armSide"] = 99
+            }
         };
 
-        var assembler = new OptionCodeAssembler();
-        var schema = TxcDemoSchema();
-        var fetch = assembler.Assemble(schema, args, from, to, TaskLegs.Fetch, OptionCodeSourceKind.Manual);
-        var put = assembler.Assemble(schema, args, from, to, TaskLegs.Put, OptionCodeSourceKind.Manual);
-
-        Assert.Equal(2, fetch["pickPlace"]);
+        var fetch = await assembler.AssembleAsync(schema, args, "ERACK", "2", TaskLegs.Fetch);
         Assert.Equal(1, fetch["equipmentType"]);
-        Assert.Equal(2, fetch["equipmentSlot"]);
-        Assert.Equal(1, put["equipmentSlot"]);
-        Assert.Equal(1, put["pickPlace"]);
-        Assert.Equal(3, put["equipmentType"]);
-        Assert.NotEqual(
-            Encoder.Encode(schema, fetch),
-            Encoder.Encode(schema, put));
+        Assert.Equal(2, fetch["pickPlace"]);
+        Assert.Equal(1, fetch["armSide"]);
+    }
+
+    [Fact]
+    public async Task Assembler_Should_Fail_When_Point_Missing()
+    {
+        var assembler = new OptionCodeAssembler(new FakePointLookup());
+        var schema = TxcDemoSchema();
+        var args = new CreateTaskArgs { FromAddress = "X", FromPort = "9", ToAddress = "Y", ToPort = "1" };
+        var ex = await Assert.ThrowsAsync<BusinessException>(() =>
+            assembler.AssembleAsync(schema, args, "X", "9", TaskLegs.Fetch));
+        Assert.Equal("RCS:StationPointNotFound", ex.Code);
+    }
+
+    private sealed class FakePointLookup : IStationPointLookup
+    {
+        public Task<IReadOnlyDictionary<string, int>> GetMasterValuesAsync(
+            string addressCode, string? port, CancellationToken ct = default)
+        {
+            var key = $"{addressCode}:{port}";
+            IReadOnlyDictionary<string, int>? values = key switch
+            {
+                "ERACK:2" => new Dictionary<string, int>
+                {
+                    ["armSide"] = 1,
+                    ["equipmentType"] = 1,
+                    ["machineNo"] = 1
+                },
+                "H044:1" => new Dictionary<string, int>
+                {
+                    ["armSide"] = 2,
+                    ["equipmentType"] = 3,
+                    ["machineNo"] = 2
+                },
+                _ => null
+            };
+
+            if (values == null)
+            {
+                throw new BusinessException("RCS:StationPointNotFound")
+                    .WithData("Address", addressCode)
+                    .WithData("Port", port ?? "");
+            }
+
+            return Task.FromResult(values);
+        }
     }
 
     private static OptionCodeSchema TxcDemoSchema()

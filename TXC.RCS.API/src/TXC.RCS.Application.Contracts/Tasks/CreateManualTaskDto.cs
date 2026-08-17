@@ -39,9 +39,8 @@ public class CreateManualTaskDto
     public string? ContainerId { get; set; }
 
     /// <summary>
-    /// TaskCode 人工字段（<c>source=args</c>）。key 对齐 GET option-code-schema 的 Inputs。
-    /// 晶技 DEMO：<c>armSide</c>、<c>agvSlot</c>；不要传 <c>equipmentType</c> / <c>pickPlace</c>。
-    /// 设备库位走 <see cref="FromPort"/> / <see cref="ToPort"/>，不要放进本字典。
+    /// TaskCode 中 <c>source=args</c> 的可选字段（如料盒类型）。臂侧/设备类型来自点位表，AGV 库位 Schema 恒 0，不要传。
+    /// 设备库位走 <see cref="FromPort"/> / <see cref="ToPort"/>。
     /// </summary>
     public System.Collections.Generic.Dictionary<string, int>? OptionFields { get; set; }
 }

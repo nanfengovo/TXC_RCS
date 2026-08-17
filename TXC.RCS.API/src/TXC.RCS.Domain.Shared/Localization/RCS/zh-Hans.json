@@ -37,6 +37,11 @@
     "Unspecified": "System",
     "SeeAllUsers": "查看所有用户",
     "TakePhoto": "拍摄照片",
-    "ChoosePhoto": "选择照片"
+    "ChoosePhoto": "选择照片",
+    "RCS:StationPointNotFound": "未配置点位：地址 {Address}、口 {Port}，请在点位表维护臂侧和设备类型。",
+    "RCS:StationPointPortRequired": "地址 {Address} 需要口位才能匹配点位，请填写 fromPort/toPort。",
+    "RCS:StationPointFieldMissing": "点位 {Address}/{Port} 缺少字段 {Field}，请补全主数据。",
+    "RCS:AddressMapNotFound": "未找到地址映射：{Address}。",
+    "RCS:OptionCodeFieldRequired": "TaskCode 缺少必填字段 {Field}。"
   }
 }

@@ -60,6 +60,7 @@ public class RCSDbContext :
     // RCS
     public DbSet<TaskDo> TaskDos { get; set; }
     public DbSet<AddressMap> AddressMaps { get; set; }
+    public DbSet<StationPoint> StationPoints { get; set; }
 
     #endregion
 
@@ -122,6 +123,16 @@ public class RCSDbContext :
             b.ConfigureByConvention();
             b.Property(x => x.AddressCode).IsRequired().HasMaxLength(64);
             b.HasIndex(x => x.AddressCode).IsUnique();
+        });
+
+        builder.Entity<StationPoint>(b =>
+        {
+            b.ToTable(RCSConsts.DbTablePrefix + "StationPoints", RCSConsts.DbSchema);
+            b.ConfigureByConvention();
+            b.Property(x => x.AddressCode).IsRequired().HasMaxLength(64);
+            b.Property(x => x.Port).IsRequired().HasMaxLength(16);
+            b.Property(x => x.MasterValuesJson).IsRequired();
+            b.HasIndex(x => new { x.AddressCode, x.Port }).IsUnique();
         });
     }
 }

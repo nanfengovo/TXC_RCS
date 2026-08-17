@@ -85,9 +85,10 @@ public class TaskCreationManager : DomainService
 
         // 5 按当前厂 Schema 编码并冻结（许可只回放，不再计算）
         var schema = _optionSchemas.GetPublished();
-        var source = orderId.HasValue ? OptionCodeSourceKind.Mes : OptionCodeSourceKind.Manual;
-        var fetchFields = _optionAssembler.Assemble(schema, args, fromMap, toMap, TaskLegs.Fetch, source);
-        var putFields = _optionAssembler.Assemble(schema, args, fromMap, toMap, TaskLegs.Put, source);
+        var fetchFields = await _optionAssembler.AssembleAsync(
+            schema, args, args.FromAddress, args.FromPort, TaskLegs.Fetch, ct);
+        var putFields = await _optionAssembler.AssembleAsync(
+            schema, args, args.ToAddress!, args.ToPort, TaskLegs.Put, ct);
         task.FreezeOptionCodes(
             _optionEncoder.Encode(schema, fetchFields),
             _optionEncoder.Encode(schema, putFields));

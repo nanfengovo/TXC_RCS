@@ -68,12 +68,7 @@ internal static class OptionCodeSchemaMapper
                 dto.BindPut = "toPort";
                 break;
             case "task":
-                dto.Bind = f.Key switch
-                {
-                    "fetchBoxCount" => "fetchCount",
-                    "putBoxCount" => "putCount",
-                    _ => f.Key
-                };
+                dto.Bind = f.Bind ?? f.Key;
                 break;
             default:
                 dto.Bind = $"optionFields.{f.Key}";
