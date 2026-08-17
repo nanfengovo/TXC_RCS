@@ -39,8 +39,8 @@ const statisticData = computed(() => [
     <NGrid :x-gap="gap" :y-gap="16" responsive="screen" item-responsive>
       <NGi span="24 s:24 m:16">
         <div class="flex-y-center">
-          <div class="size-72px shrink-0 flex-center overflow-hidden rd-1/2 bg-primary/12">
-            <SystemLogo class="size-44px" />
+          <div class="max-w-220px shrink-0">
+            <SystemLogo class="h-36px w-full" />
           </div>
           <div class="pl-12px">
             <h3 class="text-18px font-semibold">
