@@ -2,8 +2,11 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TXC.RCS.Swagger;
+using TXC.RCS.Tasks.Enums;
+using TXC.RCS.Tasks.Mes;
 using TXC.RCS.Tasks.OptionCode;
 using Volo.Abp;
+using Volo.Abp.Domain.Repositories;
 
 namespace TXC.RCS.Tasks;
 
@@ -19,11 +22,19 @@ public class TaskAppService : RCSAppService, ITaskAppService
 {
     private readonly TaskCreationManager _creator;
     private readonly IOptionCodeSchemaStore _optionSchemas;
+    private readonly IRepository<TaskDo, string> _tasks;
+    private readonly IMesJobResultReporter _mesReporter;
 
-    public TaskAppService(TaskCreationManager creator, IOptionCodeSchemaStore optionSchemas)
+    public TaskAppService(
+        TaskCreationManager creator,
+        IOptionCodeSchemaStore optionSchemas,
+        IRepository<TaskDo, string> tasks,
+        IMesJobResultReporter mesReporter)
     {
         _creator = creator;
         _optionSchemas = optionSchemas;
+        _tasks = tasks;
+        _mesReporter = mesReporter;
     }
 
     /// <inheritdoc />
@@ -48,10 +59,60 @@ public class TaskAppService : RCSAppService, ITaskAppService
             OptionFields = input.OptionFields
         };
 
-        // id: null → 人工任务号；MES 接入时传 job_id
-        var task = await _creator.CreateAndStartAsync(args, id: null);
+        // id: null → 人工任务号；Source=Manual（MES 走独立 Ingress）
+        var task = await _creator.CreateAndStartAsync(args, id: null, source: TaskSource.Manual);
 
         return Map(task);
+    }
+
+    /// <inheritdoc />
+    [AllowAnonymous]
+    public async Task<TaskDto> CancelAsync(CancelTaskDto input)
+    {
+        Check.NotNullOrWhiteSpace(input.Id, nameof(input.Id));
+        var task = await _tasks.GetAsync(input.Id.Trim());
+        task.MarkCanceled(NullIfWhiteSpace(input.Reason));
+        await _tasks.UpdateAsync(task, autoSave: true);
+        return Map(task);
+    }
+
+    /// <inheritdoc />
+    [AllowAnonymous]
+    public async Task<MesReportResultDto> RetryMesReportAsync(string id)
+    {
+        Check.NotNullOrWhiteSpace(id, nameof(id));
+        var task = await _tasks.GetAsync(id.Trim());
+
+        if (task.Source != TaskSource.Mes)
+        {
+            throw new BusinessException("RCS:MesReportNotApplicable")
+                .WithData("TaskId", task.Id)
+                .WithData("Source", task.Source);
+        }
+
+        var jobResult = task.TaskLifecycleStatus switch
+        {
+            TaskLifecycleStatus.Succeeded => MesJobResults.Completed,
+            TaskLifecycleStatus.Canceled => MesJobResults.Deleted,
+            _ => throw new BusinessException("RCS:MesReportNotEnded")
+                .WithData("TaskId", task.Id)
+                .WithData("Status", task.TaskLifecycleStatus)
+        };
+
+        var outcome = await _mesReporter.ReportAsync(new MesJobReportRequest
+        {
+            JobId = task.Id,
+            JobResult = jobResult,
+            CancelMessage = task.TaskLifecycleStatus == TaskLifecycleStatus.Canceled
+                ? task.LastError
+                : null
+        });
+
+        return new MesReportResultDto
+        {
+            Accepted = outcome.Accepted,
+            Message = outcome.Message
+        };
     }
 
     /// <inheritdoc />
@@ -66,6 +127,8 @@ public class TaskAppService : RCSAppService, ITaskAppService
     private static TaskDto Map(TaskDo task) => new()
     {
         Id = task.Id,
+        Source = task.Source.ToString(),
+        LotId = task.LotId,
         LifecycleStatus = task.TaskLifecycleStatus.ToString(),
         WaitingEvent = task.WaitingEvent,
         ActiveLeg = task.ActiveLeg,

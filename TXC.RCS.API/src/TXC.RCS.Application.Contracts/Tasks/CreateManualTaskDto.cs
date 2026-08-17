@@ -39,7 +39,8 @@ public class CreateManualTaskDto
     public string? ContainerId { get; set; }
 
     /// <summary>
-    /// TaskCode 中 <c>source=args</c> 的可选字段（如料盒类型）。臂侧/设备类型来自点位表，AGV 库位 Schema 恒 0，不要传。
+    /// TaskCode 中 <c>source=args</c> 的可选字段（如料盒类型）。
+    /// 臂侧来自点位表（可不传）、AGV 库位 Schema 恒 0，不要传。
     /// 设备库位走 <see cref="FromPort"/> / <see cref="ToPort"/>。
     /// </summary>
     public System.Collections.Generic.Dictionary<string, int>? OptionFields { get; set; }

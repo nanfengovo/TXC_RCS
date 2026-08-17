@@ -102,12 +102,15 @@ public class RCSDbContext :
             b.ConfigureByConvention();
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasMaxLength(64);
+            b.Property(x => x.Source).IsRequired();
+            b.Property(x => x.LotId).HasMaxLength(64);
             b.Property(x => x.FromAddress).IsRequired().HasMaxLength(64);
             b.Property(x => x.FromPort).HasMaxLength(16);
             b.Property(x => x.MiddleAddress).HasMaxLength(64);
             b.Property(x => x.MiddlePort).HasMaxLength(16);
             b.Property(x => x.ToAddress).HasMaxLength(64);
             b.Property(x => x.ToPort).HasMaxLength(16);
+            b.Property(x => x.ContainerId).HasMaxLength(64);
             b.Property(x => x.FetchOptionCode).HasMaxLength(64);
             b.Property(x => x.PutOptionCode).HasMaxLength(64);
             b.Property(x => x.OptionCodeSchemaCode).HasMaxLength(32);
@@ -115,6 +118,7 @@ public class RCSDbContext :
             b.Property(x => x.PutTaskSerial).HasMaxLength(128);
             b.HasIndex(x => x.FetchTaskSerial);
             b.HasIndex(x => x.PutTaskSerial);
+            b.HasIndex(x => x.Source);
         });
 
         builder.Entity<AddressMap>(b =>

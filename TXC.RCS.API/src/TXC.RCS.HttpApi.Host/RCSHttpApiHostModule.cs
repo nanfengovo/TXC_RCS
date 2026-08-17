@@ -44,7 +44,9 @@ using Volo.Abp.AspNetCore.Mvc.Libs;
 using Microsoft.Extensions.Options;
 using TXC.RCS.Options;
 using TXC.RCS.Tasks.TM;
+using TXC.RCS.Tasks.Mes;
 using TXC.RCS.Tm;
+using TXC.RCS.Mes;
 using TXC.RCS.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -108,6 +110,18 @@ public class RCSHttpApiHostModule : AbpModule
             return opt.Mode.Equals("Real", StringComparison.OrdinalIgnoreCase)
                 ? sp.GetRequiredService<HttpTmClient>()
                 : sp.GetRequiredService<SimulationTmClient>();
+        });
+
+        Configure<MesOptions>(configuration.GetSection(MesOptions.SectionName));
+        context.Services.AddHttpClient("Mes");
+        context.Services.AddTransient<SimulationMesJobResultReporter>();
+        context.Services.AddTransient<HttpMesJobResultReporter>();
+        context.Services.AddTransient<IMesJobResultReporter>(sp =>
+        {
+            var opt = sp.GetRequiredService<IOptions<MesOptions>>().Value;
+            return opt.Mode.Equals("Real", StringComparison.OrdinalIgnoreCase)
+                ? sp.GetRequiredService<HttpMesJobResultReporter>()
+                : sp.GetRequiredService<SimulationMesJobResultReporter>();
         });
 
 

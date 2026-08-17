@@ -9,7 +9,7 @@
       "label": "TaskCodea",
       "width": 32,
       "fields": [
-        { "key": "armSide", "label": "机械臂运行侧", "bitStart": 1, "bitEnd": 8, "required": true, "source": "master",
+        { "key": "armSide", "label": "机械臂运行侧", "bitStart": 1, "bitEnd": 8, "required": false, "source": "master",
           "enum": { "1": "左侧", "2": "右侧" } },
         { "key": "agvSlot", "label": "AGV库位编号", "bitStart": 9, "bitEnd": 16, "required": true, "source": "const", "constValue": 0 },
         { "key": "boxType", "label": "料盒类型", "bitStart": 17, "bitEnd": 24, "required": false, "source": "args" },

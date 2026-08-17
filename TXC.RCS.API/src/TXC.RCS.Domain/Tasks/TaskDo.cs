@@ -24,6 +24,15 @@ namespace TXC.RCS.Tasks
         /// <value></value>
         public Guid? OrderId { get; private set; }
 
+        /// <summary>
+        /// 建单来源（Manual / Mes）。不要用 OrderId 猜测。
+        /// </summary>
+        public TaskSource Source { get; private set; }
+
+        /// <summary>
+        /// MES 批次号（lot_id）；人工可空。
+        /// </summary>
+        public string? LotId { get; private set; }
 
         /// <summary>
         /// 容器ID
@@ -243,10 +252,18 @@ namespace TXC.RCS.Tasks
             TemplateCode = null!;
         }
 
-        protected TaskDo(string id, Guid? orderId, CreateTaskArgs args, string templateCode, int templateVersion) : base(id)
+        protected TaskDo(
+            string id,
+            Guid? orderId,
+            TaskSource source,
+            CreateTaskArgs args,
+            string templateCode,
+            int templateVersion) : base(id)
         {
             Id = id;
             OrderId = orderId;
+            Source = source;
+            LotId = args.LotId;
             ContainerId = args.ContainerId;
             FromAddress = args.FromAddress;
             FromPort = args.FromPort;
@@ -267,12 +284,74 @@ namespace TXC.RCS.Tasks
             StepIndex = 0;
         }
 
-        public static TaskDo Create(string id, Guid? orderId, CreateTaskArgs args, string templateCode, int templateVersion)
+        public static TaskDo Create(
+            string id,
+            Guid? orderId,
+            TaskSource source,
+            CreateTaskArgs args,
+            string templateCode,
+            int templateVersion)
         {
             Check.NotNullOrWhiteSpace(id, nameof(id));
             Check.NotNullOrWhiteSpace(templateCode, nameof(templateCode));
-            return new TaskDo(id, orderId, args, templateCode, templateVersion);
+            return new TaskDo(id, orderId, source, args, templateCode, templateVersion);
         }
+
+        /// <summary>
+        /// MES 幂等：同 job_id 时比较「派工语义」是否一致（不含运行时字段）。
+        /// </summary>
+        public bool MatchesMesDispatch(CreateTaskArgs args)
+        {
+            return Same(FromAddress, args.FromAddress)
+                   && Same(FromPort, args.FromPort)
+                   && Same(ToAddress, args.ToAddress)
+                   && Same(ToPort, args.ToPort)
+                   && Same(ContainerId, args.ContainerId)
+                   && Same(LotId, args.LotId);
+        }
+
+        /// <summary>同号不同内容时的差异说明（中文，给 MES Message）。</summary>
+        public string DescribeMesDispatchDiff(CreateTaskArgs args)
+        {
+            var parts = new List<string>();
+            if (!Same(FromAddress, args.FromAddress))
+            {
+                parts.Add($"起点地址现有={FromAddress} 请求={args.FromAddress}");
+            }
+
+            if (!Same(FromPort, args.FromPort))
+            {
+                parts.Add($"起点口现有={FromPort ?? ""} 请求={args.FromPort ?? ""}");
+            }
+
+            if (!Same(ToAddress, args.ToAddress))
+            {
+                parts.Add($"终点地址现有={ToAddress ?? ""} 请求={args.ToAddress ?? ""}");
+            }
+
+            if (!Same(ToPort, args.ToPort))
+            {
+                parts.Add($"终点口现有={ToPort ?? ""} 请求={args.ToPort ?? ""}");
+            }
+
+            if (!Same(ContainerId, args.ContainerId))
+            {
+                parts.Add($"料盒现有={ContainerId ?? ""} 请求={args.ContainerId ?? ""}");
+            }
+
+            if (!Same(LotId, args.LotId))
+            {
+                parts.Add($"批次现有={LotId ?? ""} 请求={args.LotId ?? ""}");
+            }
+
+            return parts.Count == 0 ? "内容一致" : string.Join("；", parts);
+        }
+
+        private static bool Same(string? a, string? b)
+            => string.Equals(Norm(a), Norm(b), StringComparison.Ordinal);
+
+        private static string Norm(string? value)
+            => string.IsNullOrWhiteSpace(value) ? "" : value.Trim();
 
         public void FreezeTmMapping(int fromTmTarget, string? fromTmStorage, int toTmTarget, string? toTmStorage)
         {
@@ -385,6 +464,8 @@ namespace TXC.RCS.Tasks
             }
             TaskLifecycleStatus = TaskLifecycleStatus.Succeeded;
             ClearWaiting();
+            // 本地事件：MES Handler 过滤 Source；失败不上报故 MarkFailed 不发
+            AddLocalEvent(new Mes.TaskLifecycleEndedEvent(Id, Source, TaskLifecycleStatus.Succeeded));
         }
 
         public void MarkFailed(string error)
@@ -401,11 +482,22 @@ namespace TXC.RCS.Tasks
             LastError = error;
         }
 
-        public void MarkCanceled()
+        /// <param name="cancelMessage">取消原因；写入 RCS-101 cancel_message，可空。</param>
+        public void MarkCanceled(string? cancelMessage = null)
         {
             EnsureNotClosed();
             TaskLifecycleStatus = TaskLifecycleStatus.Canceled;
             ClearWaiting();
+            if (!string.IsNullOrWhiteSpace(cancelMessage))
+            {
+                LastError = cancelMessage.Trim();
+            }
+
+            AddLocalEvent(new Mes.TaskLifecycleEndedEvent(
+                Id,
+                Source,
+                TaskLifecycleStatus.Canceled,
+                string.IsNullOrWhiteSpace(cancelMessage) ? null : cancelMessage.Trim()));
         }
 
         public string? ResolveLegBySerial(string taskSerial)

@@ -14,6 +14,10 @@ namespace TXC.RCS.Tasks
         public string? ToAddress { get; init; }
         public string? ToPort {get; init;}
         public string? ContainerId { get; init; }
+
+        /// <summary>MES 批次号；人工可空。</summary>
+        public string? LotId { get; init; }
+
         public int? FetchCount { get; init; }
         public int? PutCount { get; init; }
         public string? FetchMaterialCode { get; init; }

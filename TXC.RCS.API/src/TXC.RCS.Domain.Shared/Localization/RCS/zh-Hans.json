@@ -42,6 +42,11 @@
     "RCS:StationPointPortRequired": "地址 {Address} 需要口位才能匹配点位，请填写 fromPort/toPort。",
     "RCS:StationPointFieldMissing": "点位 {Address}/{Port} 缺少字段 {Field}，请补全主数据。",
     "RCS:AddressMapNotFound": "未找到地址映射：{Address}。",
-    "RCS:OptionCodeFieldRequired": "TaskCode 缺少必填字段 {Field}。"
+    "RCS:OptionCodeFieldRequired": "TaskCode 缺少必填字段 {Field}。",
+    "RCS:ToAddressRequired": "终点地址不能为空。",
+    "RCS:MiddleSplitNotImplemented": "暂不支持中间点任务，请拆成两条派工。",
+    "RCS:MesJobConflict": "任务 {JobId} 已存在且内容冲突：{Diff}",
+    "RCS:MesReportNotApplicable": "任务 {TaskId} 来源为 {Source}，无需上报 MES。",
+    "RCS:MesReportNotEnded": "任务 {TaskId} 状态为 {Status}，仅完成/取消可上报 MES。"
   }
 }

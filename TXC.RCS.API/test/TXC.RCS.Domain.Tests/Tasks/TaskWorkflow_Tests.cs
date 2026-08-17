@@ -27,6 +27,7 @@ public class TaskWorkflow_Tests
         return TaskDo.Create(
             "T001",
             orderId: null,
+            source: TaskSource.Manual,
             args: new CreateTaskArgs { FromAddress = "A1", ToAddress = "B1" },
             templateCode: WorkflowTemplateCatalog.FetchPutCode,
             templateVersion: WorkflowTemplateCatalog.FetchPutVersion);

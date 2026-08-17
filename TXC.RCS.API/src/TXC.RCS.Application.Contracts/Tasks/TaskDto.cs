@@ -9,6 +9,12 @@ public class TaskDto
     /// <summary>任务 Id（人工生成或 MES job_id）。</summary>
     public string Id { get; set; } = "";
 
+    /// <summary>建单来源：Manual / Mes。</summary>
+    public string Source { get; set; } = "";
+
+    /// <summary>MES 批次号；人工可空。</summary>
+    public string? LotId { get; set; }
+
     /// <summary>
     /// 生命周期：Pending / Running / Succeeded / Failed / Canceled。
     /// </summary>
