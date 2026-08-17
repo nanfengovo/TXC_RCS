@@ -1,6 +1,6 @@
 const local: App.I18n.Schema = {
   system: {
-    title: 'SoybeanAdmin',
+    title: 'TXC RCS',
     updateTitle: 'System Version Update Notification',
     updateContent: 'A new version of the system has been detected. Do you want to refresh the page immediately?',
     updateConfirm: 'Refresh immediately',
@@ -229,12 +229,13 @@ const local: App.I18n.Schema = {
     404: 'Page Not Found',
     500: 'Server Error',
     'iframe-page': 'Iframe',
-    home: 'Home'
+    home: 'Workbench',
+    task: 'Transport Tasks'
   },
   page: {
     login: {
       common: {
-        loginOrRegister: 'Login / Register',
+        loginOrRegister: 'Login',
         userNamePlaceholder: 'Please enter user name',
         phonePlaceholder: 'Please enter phone number',
         codePlaceholder: 'Please enter verification code',
@@ -279,33 +280,39 @@ const local: App.I18n.Schema = {
       }
     },
     home: {
-      branchDesc:
-        'For the convenience of everyone in developing and updating the merge, we have streamlined the code of the main branch, only retaining the homepage menu, and the rest of the content has been moved to the example branch for maintenance. The preview address displays the content of the example branch.',
-      greeting: 'Good morning, {userName}, today is another day full of vitality!',
-      weatherDesc: 'Today is cloudy to clear, 20℃ - 25℃!',
-      projectCount: 'Project Count',
-      todo: 'Todo',
-      message: 'Message',
-      downloadCount: 'Download Count',
-      registerCount: 'Register Count',
-      schedule: 'Work and rest Schedule',
-      study: 'Study',
-      work: 'Work',
-      rest: 'Rest',
-      entertainment: 'Entertainment',
-      visitCount: 'Visit Count',
-      turnover: 'Turnover',
-      dealCount: 'Deal Count',
-      projectNews: {
-        title: 'Project News',
-        moreNews: 'More News',
-        desc1: 'Soybean created the open source project soybean-admin on May 28, 2021!',
-        desc2: 'Yanbowe submitted a bug to soybean-admin, the multi-tab bar will not adapt.',
-        desc3: 'Soybean is ready to do sufficient preparation for the release of soybean-admin!',
-        desc4: 'Soybean is busy writing project documentation for soybean-admin!',
-        desc5: 'Soybean just wrote some of the workbench pages casually, and it was enough to see!'
-      },
-      creativity: 'Creativity'
+      title: 'Dispatch Workbench',
+      greeting: 'Hello, {userName}',
+      subtitle: 'Live overview of MES jobs, manual dispatch, and TM scheduling',
+      lastRefresh: 'Last refresh',
+      refresh: 'Refresh',
+      running: 'Running',
+      pending: 'Pending',
+      failed: 'Failed',
+      succeeded: 'Succeeded',
+      canceled: 'Canceled',
+      total: 'Total tasks',
+      mes: 'MES tasks',
+      manual: 'Manual tasks',
+      statusDist: 'Lifecycle distribution',
+      sourceDist: 'Task source',
+      recentTasks: 'Recent tasks',
+      moreTasks: 'All tasks',
+      exceptions: 'Failed tasks',
+      noException: 'No failed tasks',
+      quickEntry: 'Shortcuts',
+      goTask: 'Transport tasks',
+      goTaskDesc: 'View, cancel, delete, and monitor tasks',
+      createTask: 'Manual dispatch',
+      createTaskDesc: 'Open the task page to create a transport job',
+      mesEntry: 'MES integration',
+      mesEntryDesc: 'MES-sourced jobs and result reporting',
+      taskId: 'Task ID',
+      source: 'Source',
+      status: 'Status',
+      route: 'Route',
+      waitingEvent: 'Waiting event',
+      creationTime: 'Created at',
+      empty: 'No tasks yet'
     }
   },
   form: {

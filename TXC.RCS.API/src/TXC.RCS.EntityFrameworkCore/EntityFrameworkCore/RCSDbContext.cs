@@ -61,6 +61,7 @@ public class RCSDbContext :
     public DbSet<TaskDo> TaskDos { get; set; }
     public DbSet<AddressMap> AddressMaps { get; set; }
     public DbSet<StationPoint> StationPoints { get; set; }
+    public DbSet<TaskInteractionLog> TaskInteractionLogs { get; set; }
 
     #endregion
 
@@ -137,6 +138,19 @@ public class RCSDbContext :
             b.Property(x => x.Port).IsRequired().HasMaxLength(16);
             b.Property(x => x.MasterValuesJson).IsRequired();
             b.HasIndex(x => new { x.AddressCode, x.Port }).IsUnique();
+        });
+
+        builder.Entity<TaskInteractionLog>(b =>
+        {
+            b.ToTable(RCSConsts.DbTablePrefix + "TaskInteractionLogs", RCSConsts.DbSchema);
+            b.ConfigureByConvention();
+            b.Property(x => x.TaskId).IsRequired().HasMaxLength(64);
+            b.Property(x => x.Category).IsRequired().HasMaxLength(32);
+            b.Property(x => x.EventName).IsRequired().HasMaxLength(64);
+            b.Property(x => x.Leg).HasMaxLength(16);
+            b.Property(x => x.Message).HasMaxLength(512);
+            b.HasIndex(x => x.TaskId);
+            b.HasIndex(x => new { x.TaskId, x.CreationTime });
         });
     }
 }

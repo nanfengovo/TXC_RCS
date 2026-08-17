@@ -14,6 +14,7 @@
     "RCS:MiddleSplitNotImplemented": "Middle-stop tasks are not supported yet; split into two jobs.",
     "RCS:MesJobConflict": "Job {JobId} already exists with different content: {Diff}",
     "RCS:MesReportNotApplicable": "Task {TaskId} source is {Source}; MES report is not applicable.",
-    "RCS:MesReportNotEnded": "Task {TaskId} status is {Status}; only Succeeded/Canceled can report to MES."
+    "RCS:MesReportNotEnded": "Task {TaskId} status is {Status}; only Succeeded/Canceled can report to MES.",
+    "RCS:TaskDeleteNotAllowed": "Task {TaskId} is {Status}; cancel running tasks before delete."
   }
 }

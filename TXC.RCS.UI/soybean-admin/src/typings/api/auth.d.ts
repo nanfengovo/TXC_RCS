@@ -6,8 +6,11 @@ declare namespace Api {
    */
   namespace Auth {
     interface LoginToken {
-      token: string;
-      refreshToken: string;
+      access_token: string;
+      refresh_token: string;
+      token_type?: string;
+      expires_in?: number;
+      scope?: string;
     }
 
     interface UserInfo {
@@ -15,6 +18,18 @@ declare namespace Api {
       userName: string;
       roles: string[];
       buttons: string[];
+    }
+
+    interface ApplicationConfiguration {
+      currentUser?: {
+        isAuthenticated?: boolean;
+        id?: string;
+        userName?: string;
+        roles?: string[];
+      };
+      auth?: {
+        grantedPolicies?: Record<string, boolean>;
+      };
     }
   }
 }

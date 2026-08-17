@@ -1,47 +1,119 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TXC.RCS.Swagger;
 using TXC.RCS.Tasks.Enums;
+using TXC.RCS.Tasks.EventConst;
 using TXC.RCS.Tasks.Mes;
 using TXC.RCS.Tasks.OptionCode;
+using TXC.RCS.Tasks.Workflow;
 using Volo.Abp;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Repositories;
 
 namespace TXC.RCS.Tasks;
 
-/// <summary>
-/// <see cref="ITaskAppService"/> 实现：薄应用层，创建逻辑全部委托 <see cref="TaskCreationManager"/>。
-/// </summary>
-/// <remarks>
-/// Swagger 分组：<see cref="RcsSwaggerDocs.Biz"/>（「TXC RCS 业务」标签页）。
-/// 后续同业务域的 AppService 也请打上相同的 <c>ApiExplorerSettings.GroupName</c>。
-/// </remarks>
 [ApiExplorerSettings(GroupName = RcsSwaggerDocs.Biz)]
 public class TaskAppService : RCSAppService, ITaskAppService
 {
     private readonly TaskCreationManager _creator;
     private readonly IOptionCodeSchemaStore _optionSchemas;
     private readonly IRepository<TaskDo, string> _tasks;
+    private readonly IRepository<TaskInteractionLog, Guid> _logs;
+    private readonly ITaskInteractionLogger _logger;
     private readonly IMesJobResultReporter _mesReporter;
+    private readonly IWorkflowTemplateResolver _templates;
 
     public TaskAppService(
         TaskCreationManager creator,
         IOptionCodeSchemaStore optionSchemas,
         IRepository<TaskDo, string> tasks,
-        IMesJobResultReporter mesReporter)
+        IRepository<TaskInteractionLog, Guid> logs,
+        ITaskInteractionLogger logger,
+        IMesJobResultReporter mesReporter,
+        IWorkflowTemplateResolver templates)
     {
         _creator = creator;
         _optionSchemas = optionSchemas;
         _tasks = tasks;
+        _logs = logs;
+        _logger = logger;
         _mesReporter = mesReporter;
+        _templates = templates;
     }
 
-    /// <inheritdoc />
-    /// <remarks>
-    /// S1 临时 <see cref="AllowAnonymousAttribute"/>，便于 Swagger 无登录联调。
-    /// 上线前改为权限码（如 <c>RCS.Tasks.Create</c>）。
-    /// </remarks>
+    [AllowAnonymous]
+    public async Task<PagedResultDto<TaskDto>> GetListAsync(GetTaskListInput input)
+    {
+        var query = await _tasks.GetQueryableAsync();
+
+        TaskSource? sourceFilter = null;
+        if (!string.IsNullOrWhiteSpace(input.Source)
+            && Enum.TryParse<TaskSource>(input.Source, true, out var parsedSource))
+        {
+            sourceFilter = parsedSource;
+        }
+
+        TaskLifecycleStatus? statusFilter = null;
+        if (!string.IsNullOrWhiteSpace(input.LifecycleStatus)
+            && Enum.TryParse<TaskLifecycleStatus>(input.LifecycleStatus, true, out var parsedStatus))
+        {
+            statusFilter = parsedStatus;
+        }
+
+        query = query
+            .WhereIf(!string.IsNullOrWhiteSpace(input.Keyword),
+                x => x.Id.Contains(input.Keyword!)
+                     || (x.ContainerId != null && x.ContainerId.Contains(input.Keyword!))
+                     || (x.LotId != null && x.LotId.Contains(input.Keyword!)))
+            .WhereIf(sourceFilter.HasValue, x => x.Source == sourceFilter!.Value)
+            .WhereIf(statusFilter.HasValue, x => x.TaskLifecycleStatus == statusFilter!.Value)
+            .WhereIf(!string.IsNullOrWhiteSpace(input.FromAddress),
+                x => x.FromAddress == input.FromAddress)
+            .WhereIf(!string.IsNullOrWhiteSpace(input.ToAddress),
+                x => x.ToAddress == input.ToAddress)
+            .WhereIf(!string.IsNullOrWhiteSpace(input.ContainerId),
+                x => x.ContainerId == input.ContainerId)
+            .WhereIf(!string.IsNullOrWhiteSpace(input.LotId),
+                x => x.LotId == input.LotId);
+
+        var total = await AsyncExecuter.CountAsync(query);
+        var sorting = string.IsNullOrWhiteSpace(input.Sorting)
+            ? nameof(TaskDo.CreationTime) + " desc"
+            : input.Sorting;
+        query = query.OrderBy(sorting).PageBy(input);
+        var items = await AsyncExecuter.ToListAsync(query);
+        return new PagedResultDto<TaskDto>(total, items.Select(Map).ToList());
+    }
+
+    [AllowAnonymous]
+    public async Task<TaskDto> GetAsync(string id)
+    {
+        var task = await _tasks.GetAsync(id);
+        return Map(task);
+    }
+
+    [AllowAnonymous]
+    public async Task<TaskMonitorDetailDto> GetMonitorDetailAsync(string id)
+    {
+        var task = await _tasks.GetAsync(id);
+        var logs = await _logs.GetListAsync(x => x.TaskId == id);
+        logs = logs.OrderBy(x => x.CreationTime).ToList();
+
+        var timeline = await BuildTimelineAsync(task, logs);
+
+        return new TaskMonitorDetailDto
+        {
+            Task = Map(task),
+            Timeline = timeline,
+            Logs = logs.Select(MapLog).ToList()
+        };
+    }
+
     [AllowAnonymous]
     public async Task<TaskDto> CreateManualAsync(CreateManualTaskDto input)
     {
@@ -54,29 +126,52 @@ public class TaskAppService : RCSAppService, ITaskAppService
             FromPort = NullIfWhiteSpace(input.FromPort),
             ToAddress = input.ToAddress.Trim(),
             ToPort = NullIfWhiteSpace(input.ToPort),
-            // 空串 → null，避免把 "" 当有效货号写入
             ContainerId = NullIfWhiteSpace(input.ContainerId),
             OptionFields = input.OptionFields
         };
 
-        // id: null → 人工任务号；Source=Manual（MES 走独立 Ingress）
         var task = await _creator.CreateAndStartAsync(args, id: null, source: TaskSource.Manual);
-
+        await _logger.AppendAsync(
+            task.Id,
+            TaskLogCategories.Operator,
+            "Created",
+            success: true,
+            message: $"{task.FromAddress}/{task.FromPort} → {task.ToAddress}/{task.ToPort}");
         return Map(task);
     }
 
-    /// <inheritdoc />
     [AllowAnonymous]
     public async Task<TaskDto> CancelAsync(CancelTaskDto input)
     {
         Check.NotNullOrWhiteSpace(input.Id, nameof(input.Id));
         var task = await _tasks.GetAsync(input.Id.Trim());
-        task.MarkCanceled(NullIfWhiteSpace(input.Reason));
+        var reason = NullIfWhiteSpace(input.Reason);
+        task.MarkCanceled(reason);
+        await _logger.AppendAsync(
+            task.Id,
+            TaskLogCategories.Operator,
+            "Canceled",
+            success: true,
+            message: reason ?? "已取消");
         await _tasks.UpdateAsync(task, autoSave: true);
         return Map(task);
     }
 
-    /// <inheritdoc />
+    [AllowAnonymous]
+    public async Task DeleteAsync(string id)
+    {
+        Check.NotNullOrWhiteSpace(id, nameof(id));
+        var task = await _tasks.GetAsync(id.Trim());
+        if (task.TaskLifecycleStatus is TaskLifecycleStatus.Pending or TaskLifecycleStatus.Running)
+        {
+            throw new BusinessException("RCS:TaskDeleteNotAllowed")
+                .WithData("TaskId", task.Id)
+                .WithData("Status", task.TaskLifecycleStatus);
+        }
+
+        await _tasks.DeleteAsync(task, autoSave: true);
+    }
+
     [AllowAnonymous]
     public async Task<MesReportResultDto> RetryMesReportAsync(string id)
     {
@@ -108,6 +203,13 @@ public class TaskAppService : RCSAppService, ITaskAppService
                 : null
         });
 
+        await _logger.AppendAsync(
+            task.Id,
+            TaskLogCategories.Mes,
+            "RetryReport",
+            outcome.Accepted,
+            message: outcome.Message);
+
         return new MesReportResultDto
         {
             Accepted = outcome.Accepted,
@@ -115,7 +217,6 @@ public class TaskAppService : RCSAppService, ITaskAppService
         };
     }
 
-    /// <inheritdoc />
     [AllowAnonymous]
     public Task<PublishedOptionCodeSchemaDto> GetOptionCodeSchemaAsync()
     {
@@ -123,7 +224,133 @@ public class TaskAppService : RCSAppService, ITaskAppService
         return Task.FromResult(OptionCodeSchemaMapper.ToPublishedDto(schema));
     }
 
-    /// <summary>聚合 → 对外 DTO（只映射联调所需字段）。</summary>
+    private async Task<List<TaskTimelineStepDto>> BuildTimelineAsync(
+        TaskDo task,
+        List<TaskInteractionLog> logs)
+    {
+        var def = await _templates.ResolveAsync(task);
+        var steps = new List<TaskTimelineStepDto>();
+
+        // 创建节点
+        steps.Add(new TaskTimelineStepDto
+        {
+            Key = "created",
+            Label = "创建",
+            EventName = "Created",
+            Status = "done",
+            Time = task.CreationTime
+        });
+
+        for (var i = 0; i < def.Steps.Count; i++)
+        {
+            var step = def.Steps[i];
+            var key = step.Id;
+            var label = DescribeStep(step);
+            string status;
+            DateTime? time = null;
+
+            if (task.TaskLifecycleStatus == TaskLifecycleStatus.Canceled)
+            {
+                status = i < task.StepIndex ? "done" : "canceled";
+            }
+            else if (task.TaskLifecycleStatus == TaskLifecycleStatus.Failed)
+            {
+                status = i < task.StepIndex ? "done" : (i == task.StepIndex ? "error" : "pending");
+            }
+            else if (task.TaskLifecycleStatus == TaskLifecycleStatus.Succeeded)
+            {
+                status = "done";
+            }
+            else if (i < task.StepIndex)
+            {
+                status = "done";
+            }
+            else if (i == task.StepIndex)
+            {
+                status = "current";
+            }
+            else
+            {
+                status = "pending";
+            }
+
+            if (step.Wait != null)
+            {
+                var hit = logs.LastOrDefault(l =>
+                    l.Success
+                    && l.Category == TaskLogCategories.Tm
+                    && l.EventName == step.Wait.Event
+                    && (step.Wait.Leg == null || l.Leg == step.Wait.Leg));
+                if (hit != null)
+                {
+                    time = hit.CreationTime;
+                }
+            }
+
+            steps.Add(new TaskTimelineStepDto
+            {
+                Key = key,
+                Label = label,
+                EventName = step.Wait?.Event ?? step.Activity,
+                Leg = step.Wait?.Leg,
+                Status = status,
+                Time = time
+            });
+        }
+
+        if (task.TaskLifecycleStatus is TaskLifecycleStatus.Succeeded
+            or TaskLifecycleStatus.Canceled
+            or TaskLifecycleStatus.Failed)
+        {
+            steps.Add(new TaskTimelineStepDto
+            {
+                Key = "terminal",
+                Label = task.TaskLifecycleStatus switch
+                {
+                    TaskLifecycleStatus.Succeeded => "完成",
+                    TaskLifecycleStatus.Canceled => "已取消",
+                    _ => "失败"
+                },
+                Status = task.TaskLifecycleStatus == TaskLifecycleStatus.Succeeded
+                    ? "done"
+                    : task.TaskLifecycleStatus == TaskLifecycleStatus.Canceled
+                        ? "canceled"
+                        : "error",
+                Time = task.LastModificationTime
+            });
+        }
+
+        return steps;
+    }
+
+    private static string DescribeStep(WorkflowStepDefinition step)
+    {
+        if (step.Wait != null)
+        {
+            var leg = step.Wait.Leg == TaskLegs.Fetch ? "取" : step.Wait.Leg == TaskLegs.Put ? "放" : "";
+            return step.Wait.Event switch
+            {
+                TaskEvents.TaskStarted => $"{leg}货开始",
+                TaskEvents.Arrived => $"{leg}货到达",
+                TaskEvents.PermitRequested => $"{leg}货许可",
+                TaskEvents.Finished => $"{leg}货完成",
+                _ => $"{leg}{step.Wait.Event}"
+            };
+        }
+
+        if (step.Activity == WorkflowActivities.TmDispatch)
+        {
+            return "派发 TM";
+        }
+
+        if (step.Activity == WorkflowActivities.ExecutionComplete)
+        {
+            return "收尾";
+        }
+
+        return step.Id;
+    }
+
     private static TaskDto Map(TaskDo task) => new()
     {
         Id = task.Id,
@@ -132,18 +359,37 @@ public class TaskAppService : RCSAppService, ITaskAppService
         LifecycleStatus = task.TaskLifecycleStatus.ToString(),
         WaitingEvent = task.WaitingEvent,
         ActiveLeg = task.ActiveLeg,
+        StepIndex = task.StepIndex,
         FetchTaskSerial = task.FetchTaskSerial,
         PutTaskSerial = task.PutTaskSerial,
+        AgvSerial = task.AgvSerial,
         FromAddress = task.FromAddress,
+        FromPort = task.FromPort,
         ToAddress = task.ToAddress,
+        ToPort = task.ToPort,
         ContainerId = task.ContainerId,
         FetchOptionCode = task.FetchOptionCode,
         PutOptionCode = task.PutOptionCode,
         OptionCodeSchemaCode = task.OptionCodeSchemaCode,
-        OptionCodeSchemaVersion = task.OptionCodeSchemaVersion
+        OptionCodeSchemaVersion = task.OptionCodeSchemaVersion,
+        LastError = task.LastError,
+        CreationTime = task.CreationTime,
+        LastModificationTime = task.LastModificationTime
     };
 
-    /// <summary>空白字符串统一当成「未传」。</summary>
+    private static TaskInteractionLogDto MapLog(TaskInteractionLog log) => new()
+    {
+        Id = log.Id,
+        TaskId = log.TaskId,
+        Category = log.Category,
+        EventName = log.EventName,
+        Leg = log.Leg,
+        Message = log.Message,
+        DetailJson = log.DetailJson,
+        Success = log.Success,
+        CreationTime = log.CreationTime
+    };
+
     private static string? NullIfWhiteSpace(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

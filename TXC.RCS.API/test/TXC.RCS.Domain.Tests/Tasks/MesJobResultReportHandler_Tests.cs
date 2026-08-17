@@ -14,7 +14,10 @@ public class MesJobResultReportHandler_Tests
     public async Task Should_Ignore_Manual_Source()
     {
         var reporter = new FakeReporter();
-        var handler = new MesJobResultReportHandler(reporter, NullLogger<MesJobResultReportHandler>.Instance);
+        var handler = new MesJobResultReportHandler(
+            reporter,
+            new NoOpInteractionLogger(),
+            NullLogger<MesJobResultReportHandler>.Instance);
 
         await handler.HandleEventAsync(new TaskLifecycleEndedEvent(
             "T1", TaskSource.Manual, TaskLifecycleStatus.Succeeded));
@@ -26,7 +29,10 @@ public class MesJobResultReportHandler_Tests
     public async Task Should_Report_Completed_For_Mes_Succeeded()
     {
         var reporter = new FakeReporter();
-        var handler = new MesJobResultReportHandler(reporter, NullLogger<MesJobResultReportHandler>.Instance);
+        var handler = new MesJobResultReportHandler(
+            reporter,
+            new NoOpInteractionLogger(),
+            NullLogger<MesJobResultReportHandler>.Instance);
 
         await handler.HandleEventAsync(new TaskLifecycleEndedEvent(
             "20231106111111001", TaskSource.Mes, TaskLifecycleStatus.Succeeded));
@@ -40,7 +46,10 @@ public class MesJobResultReportHandler_Tests
     public async Task Should_Report_Deleted_For_Mes_Canceled()
     {
         var reporter = new FakeReporter();
-        var handler = new MesJobResultReportHandler(reporter, NullLogger<MesJobResultReportHandler>.Instance);
+        var handler = new MesJobResultReportHandler(
+            reporter,
+            new NoOpInteractionLogger(),
+            NullLogger<MesJobResultReportHandler>.Instance);
 
         await handler.HandleEventAsync(new TaskLifecycleEndedEvent(
             "J2", TaskSource.Mes, TaskLifecycleStatus.Canceled, "operator cancel"));
@@ -54,7 +63,10 @@ public class MesJobResultReportHandler_Tests
     public async Task Should_Ignore_Failed()
     {
         var reporter = new FakeReporter();
-        var handler = new MesJobResultReportHandler(reporter, NullLogger<MesJobResultReportHandler>.Instance);
+        var handler = new MesJobResultReportHandler(
+            reporter,
+            new NoOpInteractionLogger(),
+            NullLogger<MesJobResultReportHandler>.Instance);
 
         await handler.HandleEventAsync(new TaskLifecycleEndedEvent(
             "J3", TaskSource.Mes, TaskLifecycleStatus.Failed));
@@ -67,6 +79,7 @@ public class MesJobResultReportHandler_Tests
     {
         var handler = new MesJobResultReportHandler(
             new ThrowingReporter(),
+            new NoOpInteractionLogger(),
             NullLogger<MesJobResultReportHandler>.Instance);
 
         await handler.HandleEventAsync(new TaskLifecycleEndedEvent(
@@ -88,5 +101,19 @@ public class MesJobResultReportHandler_Tests
     {
         public Task<MesJobReportOutcome> ReportAsync(MesJobReportRequest request, CancellationToken ct = default)
             => throw new InvalidOperationException("boom");
+    }
+
+    private sealed class NoOpInteractionLogger : ITaskInteractionLogger
+    {
+        public Task AppendAsync(
+            string taskId,
+            string category,
+            string eventName,
+            bool success,
+            string? leg = null,
+            string? message = null,
+            string? detailJson = null,
+            CancellationToken ct = default)
+            => Task.CompletedTask;
     }
 }

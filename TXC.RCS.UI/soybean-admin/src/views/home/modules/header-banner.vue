@@ -8,56 +8,56 @@ defineOptions({
   name: 'HeaderBanner'
 });
 
+interface Props {
+  running: number;
+  pending: number;
+  failed: number;
+  lastRefresh: string;
+  loading: boolean;
+}
+
+const props = defineProps<Props>();
+
+const emit = defineEmits<{
+  refresh: [];
+}>();
+
 const appStore = useAppStore();
 const authStore = useAuthStore();
 
 const gap = computed(() => (appStore.isMobile ? 0 : 16));
 
-interface StatisticData {
-  id: number;
-  label: string;
-  value: string;
-}
-
-const statisticData = computed<StatisticData[]>(() => [
-  {
-    id: 0,
-    label: $t('page.home.projectCount'),
-    value: '25'
-  },
-  {
-    id: 1,
-    label: $t('page.home.todo'),
-    value: '4/16'
-  },
-  {
-    id: 2,
-    label: $t('page.home.message'),
-    value: '12'
-  }
+const statisticData = computed(() => [
+  { id: 0, label: $t('page.home.running'), value: String(props.running) },
+  { id: 1, label: $t('page.home.pending'), value: String(props.pending) },
+  { id: 2, label: $t('page.home.failed'), value: String(props.failed) }
 ]);
 </script>
 
 <template>
   <NCard :bordered="false" class="card-wrapper">
     <NGrid :x-gap="gap" :y-gap="16" responsive="screen" item-responsive>
-      <NGi span="24 s:24 m:18">
+      <NGi span="24 s:24 m:16">
         <div class="flex-y-center">
-          <div class="size-72px shrink-0 overflow-hidden rd-1/2">
-            <img src="@/assets/imgs/soybean.jpg" class="size-full" />
+          <div class="size-72px shrink-0 flex-center overflow-hidden rd-1/2 bg-primary/12">
+            <SystemLogo class="size-44px" />
           </div>
           <div class="pl-12px">
             <h3 class="text-18px font-semibold">
-              {{ $t('page.home.greeting', { userName: authStore.userInfo.userName }) }}
+              {{ $t('page.home.greeting', { userName: authStore.userInfo.userName || 'admin' }) }}
             </h3>
-            <p class="text-#999 leading-30px">{{ $t('page.home.weatherDesc') }}</p>
+            <p class="text-#999 leading-30px">{{ $t('page.home.subtitle') }}</p>
+            <p class="text-12px text-#999">{{ $t('page.home.lastRefresh') }}：{{ lastRefresh }}</p>
           </div>
         </div>
       </NGi>
-      <NGi span="24 s:24 m:6">
-        <NSpace :size="24" justify="end">
+      <NGi span="24 s:24 m:8">
+        <div class="h-full flex items-center justify-end gap-24px lt-sm:justify-between">
           <NStatistic v-for="item in statisticData" :key="item.id" class="whitespace-nowrap" v-bind="item" />
-        </NSpace>
+          <NButton type="primary" :loading="loading" @click="emit('refresh')">
+            {{ $t('page.home.refresh') }}
+          </NButton>
+        </div>
       </NGi>
     </NGrid>
   </NCard>

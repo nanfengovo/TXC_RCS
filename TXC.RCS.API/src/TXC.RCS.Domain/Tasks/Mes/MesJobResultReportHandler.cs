@@ -15,13 +15,16 @@ public class MesJobResultReportHandler :
     ITransientDependency
 {
     private readonly IMesJobResultReporter _reporter;
+    private readonly ITaskInteractionLogger _interactionLogger;
     private readonly ILogger<MesJobResultReportHandler> _logger;
 
     public MesJobResultReportHandler(
         IMesJobResultReporter reporter,
+        ITaskInteractionLogger interactionLogger,
         ILogger<MesJobResultReportHandler> logger)
     {
         _reporter = reporter;
+        _interactionLogger = interactionLogger;
         _logger = logger;
     }
 
@@ -41,7 +44,6 @@ public class MesJobResultReportHandler :
 
         if (jobResult == null)
         {
-            // Failed 等：按约定不上报
             return;
         }
 
@@ -62,15 +64,37 @@ public class MesJobResultReportHandler :
                     jobResult,
                     outcome.Message);
             }
+
+            await SafeLogAsync(
+                eventData.TaskId,
+                outcome.Accepted,
+                $"job_result={jobResult}; {outcome.Message}");
         }
         catch (Exception ex)
         {
-            // 绝不抛出：否则会回滚任务终态
             _logger.LogError(
                 ex,
                 "MES RCS-101 failed job_id={JobId} job_result={JobResult}",
                 eventData.TaskId,
                 jobResult);
+            await SafeLogAsync(eventData.TaskId, false, ex.Message);
+        }
+    }
+
+    private async Task SafeLogAsync(string taskId, bool success, string? message)
+    {
+        try
+        {
+            await _interactionLogger.AppendAsync(
+                taskId,
+                TaskLogCategories.Mes,
+                "JobResultReport",
+                success,
+                message: message);
+        }
+        catch (Exception logEx)
+        {
+            _logger.LogWarning(logEx, "MES report log append failed job_id={JobId}", taskId);
         }
     }
 }

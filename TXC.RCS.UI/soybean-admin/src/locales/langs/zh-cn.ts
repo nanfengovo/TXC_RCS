@@ -1,6 +1,6 @@
 const local: App.I18n.Schema = {
   system: {
-    title: 'Soybean 管理系统',
+    title: 'TXC RCS',
     updateTitle: '系统版本更新通知',
     updateContent: '检测到系统有新版本发布，是否立即刷新页面？',
     updateConfirm: '立即刷新',
@@ -95,7 +95,7 @@ const local: App.I18n.Schema = {
         applySuccess: '预设应用成功',
         default: {
           name: '默认预设',
-          desc: 'Soybean 默认主题预设'
+          desc: 'RCS 默认主题预设'
         },
         dark: {
           name: '暗色预设',
@@ -225,12 +225,13 @@ const local: App.I18n.Schema = {
     404: '页面不存在',
     500: '服务器错误',
     'iframe-page': '外链页面',
-    home: '首页'
+    home: '工作台',
+    task: '搬运任务'
   },
   page: {
     login: {
       common: {
-        loginOrRegister: '登录 / 注册',
+        loginOrRegister: '登录',
         userNamePlaceholder: '请输入用户名',
         phonePlaceholder: '请输入手机号',
         codePlaceholder: '请输入验证码',
@@ -275,33 +276,39 @@ const local: App.I18n.Schema = {
       }
     },
     home: {
-      branchDesc:
-        '为了方便大家开发和更新合并，我们对main分支的代码进行了精简，只保留了首页菜单，其余内容已移至example分支进行维护。预览地址显示的内容即为example分支的内容。',
-      greeting: '早安，{userName}, 今天又是充满活力的一天!',
-      weatherDesc: '今日多云转晴，20℃ - 25℃!',
-      projectCount: '项目数',
-      todo: '待办',
-      message: '消息',
-      downloadCount: '下载量',
-      registerCount: '注册量',
-      schedule: '作息安排',
-      study: '学习',
-      work: '工作',
-      rest: '休息',
-      entertainment: '娱乐',
-      visitCount: '访问量',
-      turnover: '成交额',
-      dealCount: '成交量',
-      projectNews: {
-        title: '项目动态',
-        moreNews: '更多动态',
-        desc1: 'Soybean 在2021年5月28日创建了开源项目 soybean-admin!',
-        desc2: 'Yanbowe 向 soybean-admin 提交了一个bug，多标签栏不会自适应。',
-        desc3: 'Soybean 准备为 soybean-admin 的发布做充分的准备工作!',
-        desc4: 'Soybean 正在忙于为soybean-admin写项目说明文档！',
-        desc5: 'Soybean 刚才把工作台页面随便写了一些，凑合能看了！'
-      },
-      creativity: '创意'
+      title: '调度工作台',
+      greeting: '你好，{userName}',
+      subtitle: 'MES 派工、人工下发与 TM 调度的实时概览',
+      lastRefresh: '最近刷新',
+      refresh: '刷新',
+      running: '运行中',
+      pending: '待开始',
+      failed: '失败',
+      succeeded: '已完成',
+      canceled: '已取消',
+      total: '任务总数',
+      mes: 'MES 任务',
+      manual: '人工任务',
+      statusDist: '生命周期分布',
+      sourceDist: '任务来源',
+      recentTasks: '最近任务',
+      moreTasks: '全部任务',
+      exceptions: '异常任务',
+      noException: '暂无失败任务',
+      quickEntry: '快捷入口',
+      goTask: '搬运任务',
+      goTaskDesc: '查看、取消、删除与监控任务',
+      createTask: '人工下发',
+      createTaskDesc: '从工作台进入任务页下发搬运',
+      mesEntry: 'MES 对接',
+      mesEntryDesc: 'MES 来源任务与结果上报',
+      taskId: '任务号',
+      source: '来源',
+      status: '状态',
+      route: '路径',
+      waitingEvent: '等待事件',
+      creationTime: '创建时间',
+      empty: '暂无任务'
     }
   },
   form: {

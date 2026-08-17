@@ -74,5 +74,17 @@ export const generatedRoutes: GeneratedRoute[] = [
       constant: true,
       hideInMenu: true
     }
+  },
+  {
+    name: 'task',
+    path: '/task',
+    component: 'layout.base$view.task',
+    meta: {
+      title: 'task',
+      i18nKey: 'route.task',
+      icon: 'mdi:robot-industrial',
+      order: 2,
+      keepAlive: true
+    }
   }
 ];

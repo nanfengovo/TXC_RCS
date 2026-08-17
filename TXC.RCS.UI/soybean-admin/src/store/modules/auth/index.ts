@@ -2,7 +2,7 @@ import { computed, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { defineStore } from 'pinia';
 import { useLoading } from '@sa/hooks';
-import { fetchGetUserInfo, fetchLogin } from '@/service/api';
+import { fetchGetCurrentUser, fetchLogin } from '@/service/api';
 import { useRouterPush } from '@/hooks/common/router';
 import { localStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
@@ -10,6 +10,16 @@ import { $t } from '@/locales';
 import { useRouteStore } from '../route';
 import { useTabStore } from '../tab';
 import { clearAuthStorage, getToken } from './shared';
+
+function mapGrantedPolicies(grantedPolicies?: Record<string, boolean>) {
+  if (!grantedPolicies) {
+    return [];
+  }
+
+  return Object.entries(grantedPolicies)
+    .filter(([, granted]) => granted)
+    .map(([name]) => name);
+}
 
 export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   const route = useRoute();
@@ -19,7 +29,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   const { toLogin, redirectFromLogin } = useRouterPush(false);
   const { loading: loginLoading, startLoading, endLoading } = useLoading();
 
-  const token = ref('');
+  const token = ref(getToken());
 
   const userInfo: Api.Auth.UserInfo = reactive({
     userId: '',
@@ -101,23 +111,23 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
 
     const { data: loginToken, error } = await fetchLogin(userName, password);
 
-    if (!error) {
+    if (!error && loginToken) {
       const pass = await loginByToken(loginToken);
 
       if (pass) {
-        // Check if the tab needs to be cleared
         const isClear = checkTabClear();
         let needRedirect = redirect;
 
         if (isClear) {
-          // If the tab needs to be cleared,it means we don't need to redirect.
           needRedirect = false;
         }
+
+        await routeStore.initAuthRoute();
         await redirectFromLogin(needRedirect);
 
         window.$notification?.success({
           title: $t('page.login.common.loginSuccess'),
-          content: $t('page.login.common.welcomeBack', { userName: userInfo.userName }),
+          content: $t('page.login.common.welcomeBack', { userName: userInfo.userName || userName }),
           duration: 4500
         });
       }
@@ -129,45 +139,49 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   }
 
   async function loginByToken(loginToken: Api.Auth.LoginToken) {
-    // 1. stored in the localStorage, the later requests need it in headers
-    localStg.set('token', loginToken.token);
-    localStg.set('refreshToken', loginToken.refreshToken);
+    localStg.set('token', loginToken.access_token);
+    localStg.set('refreshToken', loginToken.refresh_token);
 
-    // 2. get user info
-    const pass = await getUserInfo();
+    token.value = loginToken.access_token;
 
-    if (pass) {
-      token.value = loginToken.token;
+    return getUserInfo();
+  }
 
+  async function getUserInfo() {
+    const { data, error } = await fetchGetCurrentUser();
+
+    if (!error && data?.currentUser?.isAuthenticated) {
+      applyApplicationConfiguration(data);
       return true;
     }
 
     return false;
   }
 
-  async function getUserInfo() {
-    const { data: info, error } = await fetchGetUserInfo();
+  function applyApplicationConfiguration(data: Api.Auth.ApplicationConfiguration) {
+    const currentUser = data.currentUser!;
 
-    if (!error) {
-      // update store
-      Object.assign(userInfo, info);
-
-      return true;
-    }
-
-    return false;
+    userInfo.userId = currentUser.id || '';
+    userInfo.userName = currentUser.userName || '';
+    userInfo.roles = currentUser.roles || [];
+    userInfo.buttons = mapGrantedPolicies(data.auth?.grantedPolicies);
   }
 
   async function initUserInfo() {
     const maybeToken = getToken();
 
-    if (maybeToken) {
-      token.value = maybeToken;
-      const pass = await getUserInfo();
+    if (!maybeToken) {
+      return;
+    }
 
-      if (!pass) {
-        resetStore();
-      }
+    token.value = maybeToken;
+
+    const pass = await getUserInfo();
+
+    if (!pass) {
+      clearAuthStorage();
+      token.value = '';
+      routeStore.setIsInitAuthRoute(false);
     }
   }
 

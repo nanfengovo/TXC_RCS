@@ -22,13 +22,16 @@ public class MesJobIngressAppService : RCSAppService, IMesJobIngressAppService
 {
     private readonly IRepository<TaskDo, string> _tasks;
     private readonly TaskCreationManager _creator;
+    private readonly ITaskInteractionLogger _interactionLogger;
 
     public MesJobIngressAppService(
         IRepository<TaskDo, string> tasks,
-        TaskCreationManager creator)
+        TaskCreationManager creator,
+        ITaskInteractionLogger interactionLogger)
     {
         _tasks = tasks;
         _creator = creator;
+        _interactionLogger = interactionLogger;
     }
 
     public async Task<MesApiResponseDto> PublicJobCreatedAsync(MesPublicJobCreatedRequestDto input)
@@ -104,6 +107,12 @@ public class MesJobIngressAppService : RCSAppService, IMesJobIngressAppService
                     job.Args,
                     id: job.JobId,
                     source: TaskSource.Mes);
+                await _interactionLogger.AppendAsync(
+                    job.JobId,
+                    TaskLogCategories.Mes,
+                    "Created",
+                    success: true,
+                    message: $"{job.Args.FromAddress}/{job.Args.FromPort} → {job.Args.ToAddress}/{job.Args.ToPort}");
             }
 
             return MesApiResponseDto.Ok();

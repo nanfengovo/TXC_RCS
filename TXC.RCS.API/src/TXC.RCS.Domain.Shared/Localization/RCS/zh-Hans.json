@@ -47,6 +47,7 @@
     "RCS:MiddleSplitNotImplemented": "暂不支持中间点任务，请拆成两条派工。",
     "RCS:MesJobConflict": "任务 {JobId} 已存在且内容冲突：{Diff}",
     "RCS:MesReportNotApplicable": "任务 {TaskId} 来源为 {Source}，无需上报 MES。",
-    "RCS:MesReportNotEnded": "任务 {TaskId} 状态为 {Status}，仅完成/取消可上报 MES。"
+    "RCS:MesReportNotEnded": "任务 {TaskId} 状态为 {Status}，仅完成/取消可上报 MES。",
+    "RCS:TaskDeleteNotAllowed": "任务 {TaskId} 状态为 {Status}，运行中请先取消再删除。"
   }
 }

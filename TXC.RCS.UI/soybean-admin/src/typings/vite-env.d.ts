@@ -60,6 +60,10 @@ declare namespace Env {
     readonly VITE_SERVICE_EXPIRED_TOKEN_CODES: string;
     /** when the route mode is static, the defined super role */
     readonly VITE_STATIC_SUPER_ROLE: string;
+    /** OpenIddict client id */
+    readonly VITE_CLIENT_ID: string;
+    /** OpenIddict API scope */
+    readonly VITE_SCOPE: string;
     /**
      * other backend service base url
      *
