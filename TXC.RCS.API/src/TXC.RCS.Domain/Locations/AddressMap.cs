@@ -30,6 +30,14 @@ namespace TXC.RCS.Locations
             IsEnabled = isEnabled;
         }
 
+        public void Configure(int tmTarget, string? tmStorage, string? remark, bool isEnabled)
+        {
+            TmTarget = tmTarget;
+            TmStorage = tmStorage;
+            Remark = remark;
+            IsEnabled = isEnabled;
+        }
+
         public void ChangeTarget(int tmTarget)
         {
             TmTarget = tmTarget;

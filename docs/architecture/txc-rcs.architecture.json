@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "TXC-RCS 系统架构",
+    "output": "txc-rcs-architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1060, 600],
+    "views": [
+      {
+        "id": "ui-rest",
+        "label": "UI 与 REST",
+        "focus": ["operators", "ui", "auth", "api-host", "app-layer"],
+        "note": "操作员经 OpenIddict 登录后，通过 REST 调用 ABP 自动 API。"
+      },
+      {
+        "id": "domain-flow",
+        "label": "领域与工作流",
+        "focus": ["app-layer", "domain", "db", "tm", "mes"],
+        "note": "TaskWorkflow 驱动步骤，TM 回调推进，MES 派工入站与事件总线出站。"
+      },
+      {
+        "id": "realtime-plan",
+        "label": "实时推送（规划）",
+        "focus": ["ui", "signalr-hub", "event-bus", "domain"],
+        "note": "SignalR Hub 尚未实现；当前 UI 依赖 REST 轮询。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "operators",
+      "type": "external",
+      "label": "操作员",
+      "sublabel": "浏览器",
+      "pos": [40, 260],
+      "size": [120, 60]
+    },
+    {
+      "id": "ui",
+      "type": "frontend",
+      "label": "TXC.RCS.UI",
+      "sublabel": "Vue3 · :9527",
+      "pos": [200, 260],
+      "size": [140, 64],
+      "tag": "Soybean Admin"
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "OpenIddict",
+      "sublabel": "/connect/token",
+      "pos": [200, 100],
+      "size": [140, 64],
+      "tag": "JWT"
+    },
+    {
+      "id": "signalr-hub",
+      "type": "messagebus",
+      "label": "RcsHub",
+      "sublabel": "SignalR",
+      "pos": [400, 100],
+      "size": [140, 64],
+      "tag": "规划中"
+    },
+    {
+      "id": "event-bus",
+      "type": "messagebus",
+      "label": "Local Event Bus",
+      "sublabel": "ABP 进程内",
+      "pos": [580, 100],
+      "size": [150, 64]
+    },
+    {
+      "id": "api-host",
+      "type": "backend",
+      "label": "HttpApi.Host",
+      "sublabel": "ABP · :9000",
+      "pos": [400, 260],
+      "size": [140, 64]
+    },
+    {
+      "id": "app-layer",
+      "type": "backend",
+      "label": "Application",
+      "sublabel": "AppServices",
+      "pos": [580, 260],
+      "size": [140, 64]
+    },
+    {
+      "id": "domain",
+      "type": "backend",
+      "label": "Domain",
+      "sublabel": "TaskDo · Workflow",
+      "pos": [760, 260],
+      "size": [150, 64]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "SQL Server",
+      "sublabel": "EF Core",
+      "pos": [760, 440],
+      "size": [150, 60]
+    },
+    {
+      "id": "mes",
+      "type": "external",
+      "label": "MES",
+      "sublabel": "RCS-001 / 101",
+      "pos": [200, 440],
+      "size": [140, 60]
+    },
+    {
+      "id": "tm",
+      "type": "external",
+      "label": "TM 新松",
+      "sublabel": "调度系统",
+      "pos": [580, 440],
+      "size": [140, 60]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "RCS 后端 (ABP DDD)",
+      "wraps": ["auth", "signalr-hub", "event-bus", "api-host", "app-layer", "domain", "db"]
+    },
+    {
+      "kind": "region",
+      "label": "外部集成",
+      "wraps": ["mes", "tm"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "ops-to-ui",
+      "from": "operators",
+      "to": "ui",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ui-login",
+      "from": "ui",
+      "to": "auth",
+      "label": "Password Grant",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelDy": -66
+    },
+    {
+      "id": "ui-rest",
+      "from": "ui",
+      "to": "api-host",
+      "label": "REST + Bearer",
+      "variant": "emphasis",
+      "labelAt": [370, 338]
+    },
+    {
+      "id": "host-to-app",
+      "from": "api-host",
+      "to": "app-layer"
+    },
+    {
+      "id": "app-to-domain",
+      "from": "app-layer",
+      "to": "domain"
+    },
+    {
+      "id": "domain-to-db",
+      "from": "domain",
+      "to": "db",
+      "label": "EF Core",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [790, 400]
+    },
+    {
+      "id": "mes-ingress",
+      "from": "mes",
+      "to": "api-host",
+      "label": "RCS-001 派工",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "via": [[270, 420], [270, 350], [470, 350]],
+      "labelAt": [230, 256]
+    },
+    {
+      "id": "domain-dispatch",
+      "from": "domain",
+      "to": "tm",
+      "label": "task_add",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [[835, 380], [650, 380], [650, 440]]
+    },
+    {
+      "id": "tm-callback",
+      "from": "tm",
+      "to": "api-host",
+      "label": "xinsong 回调",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "via": [[650, 420], [650, 340], [470, 340]]
+    },
+    {
+      "id": "domain-events",
+      "from": "domain",
+      "to": "event-bus",
+      "label": "生命周期事件",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [745, 96]
+    },
+    {
+      "id": "event-to-signalr-plan",
+      "from": "event-bus",
+      "to": "signalr-hub",
+      "label": "推送（规划）",
+      "variant": "dashed",
+      "labelDy": 56
+    },
+    {
+      "id": "signalr-to-ui-plan",
+      "from": "signalr-hub",
+      "to": "ui",
+      "label": "WebSocket（规划）",
+      "variant": "dashed",
+      "labelAt": [320, 200]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "前端 (TXC.RCS.UI)",
+      "items": [
+        "Vue 3 + Naive UI + Pinia，Dev 端口 9527",
+        "OpenIddict 密码模式登录，401 自动刷新 Token",
+        "任务监控页建设中，当前依赖 REST 轮询"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "后端 (ABP DDD)",
+      "items": [
+        "TaskDo 聚合根 + TaskWorkflow 步骤驱动状态机",
+        "MesJobController / TmCallbackController 显式路由",
+        "TaskAppService 提供 /api/app/task/* 自动 API"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "实时推送",
+      "items": [
+        "SignalR RcsHub 为 Phase 3 规划项，代码尚未落地",
+        "当前：Local Event Bus → MES RCS-101 结果出站",
+        "目标：领域事件 → Hub → UI 任务状态变更推送"
+      ]
+    }
+  ]
+}

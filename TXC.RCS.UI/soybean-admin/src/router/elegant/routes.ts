@@ -76,6 +76,28 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'master-data',
+    path: '/master-data',
+    component: 'layout.base$view.master-data',
+    meta: {
+      title: 'master-data',
+      i18nKey: 'route.master-data',
+      icon: 'mdi:database-cog-outline',
+      order: 3
+    }
+  },
+  {
+    name: 'settings',
+    path: '/settings',
+    component: 'layout.base$view.settings',
+    meta: {
+      title: 'settings',
+      i18nKey: 'route.settings',
+      icon: 'mdi:cog-outline',
+      order: 4
+    }
+  },
+  {
     name: 'task',
     path: '/task',
     component: 'layout.base$view.task',

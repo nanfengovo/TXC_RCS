@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useNaiveForm } from '@/hooks/common/form';
 import { fetchCreateManualTask, fetchGetOptionCodeSchema } from '@/service/api';
+import { mergeAddressOptions, useAddressOptions } from '@/composables/use-address-options';
+import { useRcsConfigStore } from '@/store/modules/rcs-config';
 import { $t } from '@/locales';
 
 defineOptions({ name: 'TaskOperateDrawer' });
@@ -19,6 +22,20 @@ interface Emits {
 const emit = defineEmits<Emits>();
 
 const visible = defineModel<boolean>('visible', { default: false });
+
+const rcsConfigStore = useRcsConfigStore();
+const { config: rcsConfig } = storeToRefs(rcsConfigStore);
+const { addressOptions, loadAddresses, loadPortOptions } = useAddressOptions();
+
+const fromPortOptions = ref<{ label: string; value: string }[]>([]);
+const toPortOptions = ref<{ label: string; value: string }[]>([]);
+
+const fromOptions = computed(() =>
+  mergeAddressOptions(addressOptions.value, rcsConfig.value.fromAddressSuggestions)
+);
+const toOptions = computed(() =>
+  mergeAddressOptions(addressOptions.value, rcsConfig.value.toAddressSuggestions)
+);
 
 const { formRef, validate, restoreValidation } = useNaiveForm();
 
@@ -69,11 +86,19 @@ async function loadSchema() {
   }
 }
 
+async function refreshFromPorts() {
+  fromPortOptions.value = await loadPortOptions(model.fromAddress);
+}
+
+async function refreshToPorts() {
+  toPortOptions.value = await loadPortOptions(model.toAddress);
+}
+
 function handleInitModel() {
   const next = createDefaultModel();
-  model.fromAddress = next.fromAddress;
+  model.fromAddress = rcsConfig.value.defaultFromAddress || next.fromAddress;
   model.fromPort = next.fromPort;
-  model.toAddress = next.toAddress;
+  model.toAddress = rcsConfig.value.defaultToAddress || next.toAddress;
   model.toPort = next.toPort;
   model.containerId = next.containerId;
   model.optionFields = {};
@@ -112,9 +137,25 @@ watch(visible, async val => {
   if (val) {
     handleInitModel();
     restoreValidation();
-    await loadSchema();
+    await Promise.all([loadSchema(), loadAddresses(), refreshFromPorts(), refreshToPorts()]);
   }
 });
+
+watch(
+  () => model.fromAddress,
+  async () => {
+    if (!visible.value) return;
+    await refreshFromPorts();
+  }
+);
+
+watch(
+  () => model.toAddress,
+  async () => {
+    if (!visible.value) return;
+    await refreshToPorts();
+  }
+);
 </script>
 
 <template>
@@ -123,16 +164,36 @@ watch(visible, async val => {
       <NSpin :show="schema.loading">
         <NForm ref="formRef" :model="model" :rules="rules" label-placement="left" :label-width="100">
           <NFormItem label="起点地址" path="fromAddress">
-            <NInput v-model:value="model.fromAddress" placeholder="ERACK / H044 / H099" />
+            <NAutoComplete
+              v-model:value="model.fromAddress"
+              :options="fromOptions"
+              placeholder="ERACK / STK01"
+            />
           </NFormItem>
           <NFormItem label="起点口" path="fromPort">
-            <NInput v-model:value="model.fromPort" placeholder="设备库位，如 1" />
+            <NAutoComplete
+              :value="model.fromPort ?? ''"
+              :options="fromPortOptions"
+              clearable
+              placeholder="设备库位，如 1"
+              @update:value="model.fromPort = $event || null"
+            />
           </NFormItem>
           <NFormItem label="终点地址" path="toAddress">
-            <NInput v-model:value="model.toAddress" placeholder="H044 / H099" />
+            <NAutoComplete
+              v-model:value="model.toAddress"
+              :options="toOptions"
+              placeholder="H044 / EQP-A01"
+            />
           </NFormItem>
           <NFormItem label="终点口" path="toPort">
-            <NInput v-model:value="model.toPort" placeholder="设备库位，如 1" />
+            <NAutoComplete
+              :value="model.toPort ?? ''"
+              :options="toPortOptions"
+              clearable
+              placeholder="设备库位，如 1"
+              @update:value="model.toPort = $event || null"
+            />
           </NFormItem>
           <NFormItem label="料盒号" path="containerId">
             <NInput v-model:value="model.containerId" placeholder="可空" />

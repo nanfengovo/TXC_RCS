@@ -1,8 +1,10 @@
 <script setup lang="tsx">
 import { onBeforeUnmount, reactive, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import type { FlatResponseData } from '@sa/axios';
 import type { PaginationData } from '@sa/hooks';
-import { NButton, NPopconfirm, NTag } from 'naive-ui';
+import { NButton, NPopconfirm, NTag, NTooltip } from 'naive-ui';
+import type { RowKey } from 'naive-ui/es/data-table/src/interface';
 import {
   fetchCancelTask,
   fetchDeleteTask,
@@ -10,14 +12,17 @@ import {
   fetchRetryMesReport
 } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
+import { useRcsConfigStore } from '@/store/modules/rcs-config';
 import { useNaivePaginatedTable, useTableOperate } from '@/hooks/common/table';
 import { $t } from '@/locales';
 import TaskSearch from './modules/task-search.vue';
 import TaskOperateDrawer from './modules/task-operate-drawer.vue';
 import TaskMonitorModal from './modules/task-monitor-modal.vue';
+import TaskDetailExpand from './modules/task-detail-expand.vue';
 import {
   canRetryMes,
   formatTaskTime,
+  getActiveLegMeta,
   getLifecycleMeta,
   getSourceMeta,
   isTaskCancelable,
@@ -27,6 +32,8 @@ import {
 defineOptions({ name: 'TaskPage' });
 
 const appStore = useAppStore();
+const rcsConfigStore = useRcsConfigStore();
+const { config: rcsConfig } = storeToRefs(rcsConfigStore);
 
 const searchModel = reactive<Api.Task.TaskSearchParams>({
   keyword: null,
@@ -77,18 +84,34 @@ const {
   },
   columns: () => [
     {
+      type: 'expand',
+      width: 40,
+      fixed: 'left',
+      expandable: () => true,
+      renderExpand: (row: Api.Task.TaskItem) => (
+        <TaskDetailExpand task={row} onMonitor={() => openMonitor(row.id)} />
+      )
+    },
+    {
       key: 'index',
       title: $t('common.index'),
       align: 'center',
-      width: 64,
+      width: 56,
+      fixed: 'left',
       render: (_, index) => index + 1 + (query.page - 1) * query.pageSize
     },
     {
       key: 'id',
       title: '任务号',
-      align: 'center',
-      minWidth: 180,
-      ellipsis: { tooltip: true }
+      align: 'left',
+      width: 200,
+      fixed: 'left',
+      ellipsis: { tooltip: true },
+      render: row => (
+        <span class="font-mono text-12px" title={row.id}>
+          {row.id}
+        </span>
+      )
     },
     {
       key: 'source',
@@ -125,29 +148,74 @@ const {
       key: 'containerId',
       title: '料盒',
       align: 'center',
-      minWidth: 120,
+      minWidth: 100,
       ellipsis: { tooltip: true },
       render: row => row.containerId || '-'
+    },
+    {
+      key: 'lotId',
+      title: 'Lot',
+      align: 'center',
+      width: 88,
+      ellipsis: { tooltip: true },
+      render: row => row.lotId || '-'
+    },
+    {
+      key: 'agvSerial',
+      title: 'AGV',
+      align: 'center',
+      width: 72,
+      render: row => row.agvSerial || '-'
+    },
+    {
+      key: 'activeLeg',
+      title: '当前步骤',
+      align: 'center',
+      width: 96,
+      render: row => {
+        const meta = getActiveLegMeta(row.activeLeg);
+        if (!row.activeLeg) return '—';
+        return <NTag size="small" type={meta.color}>{meta.label}</NTag>;
+      }
     },
     {
       key: 'waitingEvent',
       title: '等待事件',
       align: 'center',
-      minWidth: 120,
-      render: row => row.waitingEvent || '-'
+      width: 110,
+      ellipsis: { tooltip: true },
+      render: row => row.waitingEvent || '—'
+    },
+    {
+      key: 'lastError',
+      title: '错误',
+      align: 'center',
+      width: 100,
+      ellipsis: { tooltip: true },
+      render: row =>
+        row.lastError ? (
+          <NTooltip>
+            {{
+              trigger: () => <span class="text-error">{row.lastError}</span>,
+              default: () => row.lastError
+            }}
+          </NTooltip>
+        ) : (
+          '—'
+        )
     },
     {
       key: 'creationTime',
       title: '创建时间',
       align: 'center',
-      width: 170,
+      width: 168,
       render: row => formatTaskTime(row.creationTime)
     },
     {
       key: 'operate',
       title: $t('common.operate'),
       align: 'center',
-      width: 280,
+      width: 220,
       fixed: 'right',
       render: row => (
         <div class="flex-center gap-8px flex-wrap">
@@ -193,12 +261,17 @@ const { drawerVisible, handleAdd } = useTableOperate(data, 'id', getData);
 
 const monitorVisible = ref(false);
 const monitorTaskId = ref<string | null>(null);
+const expandedRowKeys = ref<RowKey[]>([]);
 const autoRefresh = ref(false);
 let listTimer: ReturnType<typeof setInterval> | null = null;
 
 function openMonitor(id: string) {
   monitorTaskId.value = id;
   monitorVisible.value = true;
+}
+
+function handleExpandChange(keys: RowKey[]) {
+  expandedRowKeys.value = keys.length > 1 ? [keys[keys.length - 1]] : keys;
 }
 
 async function handleCancel(id: string) {
@@ -252,9 +325,16 @@ function toggleListPolling(on: boolean) {
     listTimer = setInterval(() => {
       if (document.hidden) return;
       getData();
-    }, 8000);
+    }, rcsConfig.value.taskListPollMs);
   }
 }
+
+watch(
+  () => rcsConfig.value.taskListPollMs,
+  () => {
+    if (autoRefresh.value) toggleListPolling(true);
+  }
+);
 
 watch(autoRefresh, val => toggleListPolling(val), { immediate: true });
 onBeforeUnmount(() => toggleListPolling(false));
@@ -285,16 +365,18 @@ onBeforeUnmount(() => toggleListPolling(false));
       </template>
 
       <NDataTable
+        v-model:expanded-row-keys="expandedRowKeys"
         :columns="columns"
         :data="data"
         size="small"
         :flex-height="!appStore.isMobile"
-        :scroll-x="1200"
+        :scroll-x="1320"
         :loading="loading"
         remote
         :row-key="row => row.id"
         :pagination="mobilePagination"
-        class="sm:h-full"
+        class="task-table sm:h-full"
+        @update:expanded-row-keys="handleExpandChange"
       />
 
       <TaskOperateDrawer v-model:visible="drawerVisible" operate-type="add" @submitted="handleSearch" />
@@ -302,3 +384,17 @@ onBeforeUnmount(() => toggleListPolling(false));
     </NCard>
   </div>
 </template>
+
+<style scoped>
+.task-table :deep(.n-data-table-td--expand) {
+  padding: 0 !important;
+}
+
+.task-table :deep(.n-data-table-tr--expanded td) {
+  border-bottom: none;
+}
+
+.task-table :deep(.n-data-table-tr--expanded + tr td) {
+  border-top: none;
+}
+</style>

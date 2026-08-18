@@ -59,4 +59,18 @@ public class StationPoint : Entity<Guid>
         var parsed = JsonSerializer.Deserialize<Dictionary<string, int>>(MasterValuesJson, JsonOptions);
         return parsed ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
     }
+
+    public void Configure(
+        string addressCode,
+        string port,
+        IReadOnlyDictionary<string, int> masterValues,
+        string? remark,
+        bool isEnabled)
+    {
+        AddressCode = Check.NotNullOrWhiteSpace(addressCode, nameof(addressCode), 64);
+        Port = Check.NotNullOrWhiteSpace(port, nameof(port), 16);
+        SetMasterValues(masterValues);
+        Remark = remark;
+        IsEnabled = isEnabled;
+    }
 }

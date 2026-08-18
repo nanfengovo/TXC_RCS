@@ -501,6 +501,7 @@ declare namespace App {
             rememberMe: string;
             forgetPassword: string;
             register: string;
+            submit: string;
             otherAccountLogin: string;
             otherLoginMode: string;
             superAdmin: string;
@@ -526,11 +527,13 @@ declare namespace App {
           bindWeChat: {
             title: string;
           };
+          amhsHint: string;
         };
         home: {
           title: string;
           greeting: string;
           subtitle: string;
+          dashboardDesc: string;
           lastRefresh: string;
           refresh: string;
           running: string;
@@ -543,6 +546,9 @@ declare namespace App {
           manual: string;
           statusDist: string;
           sourceDist: string;
+          throughput: string;
+          agvTasks: string;
+          noAgvData: string;
           recentTasks: string;
           moreTasks: string;
           exceptions: string;

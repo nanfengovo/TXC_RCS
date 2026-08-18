@@ -18,6 +18,21 @@ export const SOURCE_META: Record<string, StatusMeta> = {
   Mes: { label: 'MES', color: 'primary' }
 };
 
+/** Fetch/Put 腿 → 取/放 */
+export const ACTIVE_LEG_META: Record<string, StatusMeta> = {
+  Fetch: { label: '取', color: 'info' },
+  Put: { label: '放', color: 'success' }
+};
+
+export function getActiveLegMeta(leg?: string | null): StatusMeta {
+  if (!leg) return { label: '—', color: 'default' };
+  return ACTIVE_LEG_META[leg] || { label: leg, color: 'default' };
+}
+
+export function getActiveLegLabel(leg?: string | null): string {
+  return getActiveLegMeta(leg).label;
+}
+
 export function getLifecycleMeta(status?: string | null): StatusMeta {
   if (!status) return { label: '-', color: 'default' };
   return LIFECYCLE_META[status] || { label: status, color: 'default' };

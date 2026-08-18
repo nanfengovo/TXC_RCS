@@ -39,5 +39,7 @@ declare namespace StorageType {
     };
     /** The last login user id */
     lastLoginUserId: string;
+    /** RCS frontend runtime configuration */
+    'rcs-runtime-config': import('@/constants/rcs-config').RcsRuntimeConfig;
   }
 }

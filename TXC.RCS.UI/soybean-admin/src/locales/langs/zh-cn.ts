@@ -225,8 +225,10 @@ const local: App.I18n.Schema = {
     404: '页面不存在',
     500: '服务器错误',
     'iframe-page': '外链页面',
-    home: '工作台',
-    task: '搬运任务'
+    home: '数据仪表盘',
+    task: '搬运任务',
+    settings: '系统配置',
+    'master-data': '主数据维护'
   },
   page: {
     login: {
@@ -249,6 +251,7 @@ const local: App.I18n.Schema = {
         rememberMe: '记住我',
         forgetPassword: '忘记密码？',
         register: '注册账号',
+        submit: '登陆RCS系统',
         otherAccountLogin: '其他账号登录',
         otherLoginMode: '其他登录方式',
         superAdmin: '超级管理员',
@@ -273,12 +276,14 @@ const local: App.I18n.Schema = {
       },
       bindWeChat: {
         title: '绑定微信'
-      }
+      },
+      amhsHint: '洁净室 AMHS 物料搬运调度控制台，请使用授权账号登录。'
     },
     home: {
-      title: '调度工作台',
+      title: 'AMHS 数据仪表盘',
       greeting: '你好，{userName}',
       subtitle: 'MES 派工、人工下发与 TM 调度的实时概览',
+      dashboardDesc: '按工艺区域统计任务、调度与设备指标',
       lastRefresh: '最近刷新',
       refresh: '刷新',
       running: '运行中',
@@ -291,6 +296,9 @@ const local: App.I18n.Schema = {
       manual: '人工任务',
       statusDist: '生命周期分布',
       sourceDist: '任务来源',
+      throughput: '多时间窗任务吞吐',
+      agvTasks: '各 AGV 任务分布',
+      noAgvData: '当前时间窗内暂无 AGV 任务数据',
       recentTasks: '最近任务',
       moreTasks: '全部任务',
       exceptions: '异常任务',

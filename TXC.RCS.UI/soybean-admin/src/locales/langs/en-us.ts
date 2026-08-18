@@ -229,8 +229,10 @@ const local: App.I18n.Schema = {
     404: 'Page Not Found',
     500: 'Server Error',
     'iframe-page': 'Iframe',
-    home: 'Workbench',
-    task: 'Transport Tasks'
+    home: 'Dashboard',
+    task: 'Transport Tasks',
+    settings: 'Settings',
+    'master-data': 'Master Data'
   },
   page: {
     login: {
@@ -253,6 +255,7 @@ const local: App.I18n.Schema = {
         rememberMe: 'Remember me',
         forgetPassword: 'Forget password?',
         register: 'Register',
+        submit: 'Sign in to RCS',
         otherAccountLogin: 'Other Account Login',
         otherLoginMode: 'Other Login Mode',
         superAdmin: 'Super Admin',
@@ -277,12 +280,14 @@ const local: App.I18n.Schema = {
       },
       bindWeChat: {
         title: 'Bind WeChat'
-      }
+      },
+      amhsHint: 'AMHS material handling control console — sign in with an authorized account.'
     },
     home: {
-      title: 'Dispatch Workbench',
+      title: 'AMHS Dashboard',
       greeting: 'Hello, {userName}',
       subtitle: 'Live overview of MES jobs, manual dispatch, and TM scheduling',
+      dashboardDesc: 'Process-area metrics for tasks, dispatch, and equipment',
       lastRefresh: 'Last refresh',
       refresh: 'Refresh',
       running: 'Running',
@@ -295,6 +300,9 @@ const local: App.I18n.Schema = {
       manual: 'Manual tasks',
       statusDist: 'Lifecycle distribution',
       sourceDist: 'Task source',
+      throughput: 'Throughput by time window',
+      agvTasks: 'Tasks per AGV',
+      noAgvData: 'No AGV task data in the selected window',
       recentTasks: 'Recent tasks',
       moreTasks: 'All tasks',
       exceptions: 'Failed tasks',

@@ -43,6 +43,20 @@ declare namespace Api {
       totalCount: number;
     }
 
+    interface OptionCodeField {
+      key: string;
+      label?: string | null;
+      source?: string;
+      enum?: Record<string, string> | null;
+    }
+
+    interface OptionCodePart {
+      key: string;
+      label?: string | null;
+      width?: number;
+      fields?: OptionCodeField[];
+    }
+
     interface OptionCodeInput {
       key: string;
       source: string;
@@ -54,8 +68,12 @@ declare namespace Api {
     }
 
     interface PublishedOptionCodeSchema {
-      schemaCode: string;
+      /** 后端 JSON 字段为 code */
+      code?: string;
+      schemaCode?: string;
       version: number;
+      title?: string;
+      parts?: OptionCodePart[];
       inputs: OptionCodeInput[];
     }
 
